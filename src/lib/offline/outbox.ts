@@ -20,11 +20,14 @@ async function run(client: SupabaseClient, op: OutboxOp): Promise<Result> {
       return table.upsert(op.payload ?? {}, op.onConflict ? { onConflict: op.onConflict } : {});
     case "insert":
       return table.insert(op.payload ?? {});
+    case "update":
     case "delete": {
       if (!op.match || Object.keys(op.match).length === 0) {
-        return { error: { message: "delete without match" } };
+        return { error: { message: `${op.kind} without match` } };
       }
-      return table.delete().match(op.match);
+      return op.kind === "update"
+        ? table.update(op.payload ?? {}).match(op.match)
+        : table.delete().match(op.match);
     }
   }
 }
