@@ -22,12 +22,17 @@ function format(sec: number) {
 
 function notifyRestOver() {
   navigator.vibrate?.([200, 100, 200]);
-  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-    try {
-      new Notification("レスト終了", { body: "次のセットへ", tag: "kensan-rest", silent: false });
-    } catch {
-      // Some mobile browsers only allow notifications from a service worker.
-    }
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const options = { body: "次のセットへ", tag: "kensan-rest" };
+  // Android Chrome and installed PWAs only allow notifications from the service worker.
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    void navigator.serviceWorker.ready.then((reg) => reg.showNotification("レスト終了", options));
+    return;
+  }
+  try {
+    new Notification("レスト終了", options);
+  } catch {
+    // No notification support in this context; vibration already fired.
   }
 }
 

@@ -32,3 +32,13 @@ test("auth callback without params returns to login with an error", async ({ pag
   await expect(page).toHaveURL(/\/login\?error=auth$/);
   await expect(page.getByText(/ログインできませんでした/)).toBeVisible();
 });
+
+test("PWA manifest, icons and service worker are public", async ({ request }) => {
+  const manifest = await request.get("/manifest.webmanifest");
+  expect(manifest.ok()).toBe(true);
+  expect((await manifest.json()).start_url).toBe("/home");
+  expect((await request.get("/icons/icon-192.png")).ok()).toBe(true);
+  const sw = await request.get("/sw.js");
+  expect(sw.ok()).toBe(true);
+  expect(sw.headers()["content-type"]).toContain("javascript");
+});
