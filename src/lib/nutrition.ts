@@ -7,6 +7,10 @@ export type Food = Macros & {
   name: string;
   user_id: string | null;
   is_cooked: boolean;
+  source: string;
+  food_group: number | null;
+  unit_name: string | null;
+  unit_grams: number | null;
 };
 
 export const ZERO: Macros = { kcal: 0, protein_g: 0, fat_g: 0, carb_g: 0 };
