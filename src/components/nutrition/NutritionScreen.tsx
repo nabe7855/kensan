@@ -32,6 +32,7 @@ import { ItemSheet } from "./ItemSheet";
 import { MealCard } from "./MealCard";
 import { SaveSetSheet } from "./SaveSetSheet";
 import { SetSheet } from "./SetSheet";
+import { SubstituteSheet } from "./SubstituteSheet";
 import { MacroCards } from "./MacroCards";
 import { TargetsSheet } from "./TargetsSheet";
 import { useMealActions } from "./useMealActions";
@@ -44,6 +45,7 @@ export function NutritionScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const [choosingSet, setChoosingSet] = useState<string | null>(null);
   const [savingSet, setSavingSet] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState<string | null>(null);
   const [editing, setEditing] = useState<LogItem | null>(null);
   const [editingTargets, setEditingTargets] = useState(false);
   const [showAllFills, setShowAllFills] = useState(false);
@@ -187,6 +189,17 @@ export function NutritionScreen() {
             onSaveSet={() => setSavingSet(s)}
             onToggleEaten={(e) => void actions.setEaten(s, e)}
             onClear={() => void actions.clearMeal(s)}
+            extraActions={
+              meal && meal.items.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setSwapping(s)}
+                  className="text-accent h-10 text-sm underline underline-offset-4"
+                >
+                  ⇄ 代わりを探す
+                </button>
+              ) : null
+            }
           />
         );
       })}
@@ -237,6 +250,13 @@ export function NutritionScreen() {
           slot={adding}
           onClose={() => setAdding(null)}
           onAdd={(food, grams) => void actions.addItems(adding, [{ food, grams }])}
+        />
+      )}
+      {swapping && (
+        <SubstituteSheet
+          items={meals.data?.find((m) => m.slot === swapping)?.items ?? []}
+          onClose={() => setSwapping(null)}
+          onReplace={(item, food, grams) => void actions.replaceItem(item.id, food, grams)}
         />
       )}
       {choosingSet && (
