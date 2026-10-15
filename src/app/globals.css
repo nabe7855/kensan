@@ -75,3 +75,44 @@
   border-radius: var(--radius);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
+
+@utility quench {
+  color: var(--color-bg);
+  text-shadow:
+    1px 0 0 var(--color-accent),
+    -1px 0 0 var(--color-accent),
+    0 1px 0 var(--color-accent),
+    0 -1px 0 var(--color-accent),
+    0 0 6px rgb(255 77 28 / 0.8),
+    0 0 18px rgb(255 77 28 / 0.45),
+    0 0 36px rgb(255 77 28 / 0.2);
+}
+
+@utility engrave {
+  color: var(--color-bg);
+  text-shadow:
+    0 1px 0 rgb(255 255 255 / 0.08),
+    0 0 6px rgb(255 77 28 / 0.6),
+    0 0 1px rgb(255 77 28 / 0.9);
+}
+
+@theme {
+  --animate-hamon-rise: hamon-rise 1.2s ease-out both;
+
+  @keyframes hamon-rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hamon-rise {
+    animation: none;
+  }
+}
