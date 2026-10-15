@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bodySchema, nameSchema, prepSchema } from "@/lib/onboarding";
 import { todayISO } from "@/lib/prep";
@@ -52,24 +53,36 @@ export async function savePrep(_prev: FormState, formData: FormData): Promise<Fo
 
   const { supabase, user } = await requireUser();
   const { reverse_plan, why_text, ...rest } = parsed.data;
-
-  const deactivate = await supabase
-    .from("preps")
-    .update({ is_active: false })
-    .eq("user_id", user.id)
-    .eq("is_active", true);
-  if (deactivate.error) return { error: "保存できませんでした。もう一度お試しください" };
-
-  const { error } = await supabase.from("preps").insert({
+  const fields = {
     ...rest,
-    user_id: user.id,
-    start_date: today,
     why_text: why_text || null,
     reverse_plan: reverse_plan ? { enabled: true } : null,
-    is_active: true,
-  });
-  if (error) return { error: "保存できませんでした。もう一度お試しください" };
-  redirect("/onboarding/done");
+  };
+  const prepId = formData.get("prep_id");
+  const next = formData.get("next") === "/home" ? "/home" : "/onboarding/done";
+
+  if (typeof prepId === "string" && prepId) {
+    const { error } = await supabase
+      .from("preps")
+      .update(fields)
+      .eq("id", prepId)
+      .eq("user_id", user.id);
+    if (error) return { error: "保存できませんでした。もう一度お試しください" };
+  } else {
+    const deactivate = await supabase
+      .from("preps")
+      .update({ is_active: false })
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+    if (deactivate.error) return { error: "保存できませんでした。もう一度お試しください" };
+
+    const { error } = await supabase
+      .from("preps")
+      .insert({ ...fields, user_id: user.id, start_date: today, is_active: true });
+    if (error) return { error: "保存できませんでした。もう一度お試しください" };
+  }
+  revalidatePath("/", "layout");
+  redirect(next);
 }
 
 export async function completeOnboarding(): Promise<void> {
