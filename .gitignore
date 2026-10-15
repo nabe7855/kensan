@@ -7,3 +7,9 @@ node_modules
 .DS_Store
 *.log
 .supabase/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+supabase/.temp/
+supabase/.branches/
