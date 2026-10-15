@@ -25,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           userId: user.id,
           displayName: profile.display_name ?? "",
           trackLibido: profile.track_libido,
+          mealSlots: profile.meal_slots,
           prep: prep ?? null,
         }}
       >

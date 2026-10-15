@@ -10,6 +10,7 @@ import { addDaysISO, todayISO } from "@/lib/prep";
 import { useCheckins } from "@/lib/queries/checkins";
 import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
+import { NutritionSummary } from "./NutritionSummary";
 import { TodayTrainingCard } from "./TodayTrainingCard";
 import { WeightChart } from "./WeightChart";
 
@@ -78,6 +79,8 @@ export function HomeScreen() {
           <WeightChart points={weightChartPoints(entries, today, prep)} />
         </section>
       )}
+
+      <NutritionSummary today={today} />
 
       <TodayTrainingCard today={today} />
 
