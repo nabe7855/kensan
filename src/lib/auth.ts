@@ -58,3 +58,8 @@ export function authErrorMessage(err: { code?: string; status?: number } | null)
   if (err?.status === 429) return "回数の上限に達しました。少し待ってからお試しください";
   return "うまくいきませんでした。電波の良い場所でもう一度お試しください";
 }
+
+export const changeEmailSchema = z.object({
+  email,
+  password: z.string().min(1, "今のパスワードを入力してください"),
+});
