@@ -2,10 +2,10 @@ import { macrosFor, sumMacros, type Macros } from "./nutrition";
 
 export type FillFood = Macros & { id: string; name: string };
 
-export type FillItem = { food: FillFood; grams: number };
+export type FillItem<F extends FillFood = FillFood> = { food: F; grams: number };
 
-export type FillSuggestion = {
-  items: FillItem[];
+export type FillSuggestion<F extends FillFood = FillFood> = {
+  items: FillItem<F>[];
   provides: Macros;
   /** Remaining after eating the suggestion. */
   after: Macros;
@@ -29,11 +29,11 @@ export function fillError(remaining: Macros, provides: Macros): number {
  * Requirements §9: for the remaining PFC, search 1–2 food combinations from the user's
  * top foods in 10 g steps and return the 3 with the smallest error.
  */
-export function suggestFill(
+export function suggestFill<F extends FillFood>(
   remaining: Macros,
-  foods: FillFood[],
+  foods: F[],
   { step = 10, maxGrams = 500, limit = 3 } = {},
-): FillSuggestion[] {
+): FillSuggestion<F>[] {
   if (remaining.protein_g <= 0 && remaining.carb_g <= 0 && remaining.fat_g <= 0) return [];
   const candidates = foods.slice(0, 20);
   const steps = Math.floor(maxGrams / step);
@@ -86,7 +86,7 @@ export function suggestFill(
     .sort((x, y) => x.error - y.error)
     .slice(0, limit)
     .map((c) => {
-      const items: FillItem[] = [{ food: candidates[c.a]!, grams: c.ga }];
+      const items: FillItem<F>[] = [{ food: candidates[c.a]!, grams: c.ga }];
       if (c.b >= 0) items.push({ food: candidates[c.b]!, grams: c.gb });
       const provides = sumMacros(items.map((it) => macrosFor(it.food, it.grams)));
       return {
