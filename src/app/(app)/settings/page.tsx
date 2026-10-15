@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LogoutButton } from "@/components/settings/LogoutButton";
+import { MealSlotsForm } from "@/components/settings/MealSlotsForm";
 import { ProfileForm } from "@/components/settings/ProfileForm";
 import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,11 @@ export default async function SettingsPage() {
           unitPref={profile?.unit_pref ?? "kg"}
           trackLibido={profile?.track_libido ?? true}
         />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-muted text-xs">食事</h2>
+        <MealSlotsForm slots={profile?.meal_slots ?? []} />
       </section>
 
       <section className="flex flex-col gap-2">

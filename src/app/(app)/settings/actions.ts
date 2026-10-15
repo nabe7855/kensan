@@ -52,3 +52,26 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function updateMealSlots(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const slots = String(formData.get("meal_slots") ?? "")
+    .split(/[,、\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  const unique = [...new Set(slots)];
+  if (unique.length === 0 || unique.some((s) => s.length > 10)) {
+    return { error: "食事枠は1〜8個、各10文字までにしてください" };
+  }
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ meal_slots: unique })
+    .eq("user_id", user.id);
+  if (error) return FAILED;
+  revalidatePath("/", "layout");
+  return { saved: true };
+}
