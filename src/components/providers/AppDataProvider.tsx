@@ -17,6 +17,7 @@ export type AppData = {
   userId: string;
   displayName: string;
   trackLibido: boolean;
+  mealSlots: string[];
   prep: ActivePrep | null;
 };
 
