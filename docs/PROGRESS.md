@@ -23,3 +23,29 @@
 
 ### 次
 - Phase 1：スプラッシュ → 認証（メールマジックリンク / Google）→ 銘を切る → 身体 → プレップ設定。刃文 SVG、`src/lib/prep.ts` に目標ライン計算を追加
+
+## 2026-10-15 — Phase 1 認証・オンボーディング・プレップ設定
+
+### やったこと
+- `/login`（スプラッシュ兼ログイン、08）：焼き入れロゴ、刃文が下から浮かぶ（1.2 秒、reduced-motion では静止）、「メールで続ける」「Google で続ける（準備中）」
+- `/login/email`：メール → 6〜8 桁コード入力（`verifyOtp`）。再送あり。メール内リンクは `/auth/callback`（`code` / `token_hash` 両対応）
+- middleware：ログイン済みで `/login` に来たら `/home`。`(app)` レイアウトはオンボーディング未完了なら `/onboarding` へ
+- オンボーディング `/onboarding/{name,body,prep,done}`：銘を切る（07、刻印風プレビュー）→ 身長・性別・単位 → プレップ設定（06）または「今はスキップ」→「研ぎ始める」で `profiles.onboarded_at` を記録
+- プレップ設定：週ペースは必要ペースを 0.05 刻みで切り上げた値を初期値（0.25〜1.0）。予測ライン（Recharts）、届かない場合は大会日の予測体重をアンバーで一文表示
+- `src/lib/prep.ts` に目標ライン計算、`src/lib/onboarding.ts` に次ステップ判定と zod スキーマ（いずれもテスト済み）
+- `0003_onboarding.sql`：`profiles.onboarded_at`、`preps.start_date` の既定値（JST の今日）。リモート適用済み
+- 共通部品：`Hamon`、`Logo`（Noto Serif JP 900）、`StepProgress`（研ぎ目）、`Segmented`、`src/lib/tokens.ts`（チャート用の色定数）
+- テスト：ユニット 26 件、e2e 5 件（ログイン前の画面と振り分け）
+- `.gitattributes` で改行を LF に固定（Windows で Prettier が CRLF を差分扱いするため）
+
+### 判断事項
+- メールログインはコード入力を主にした（iOS のホーム画面 PWA は Safari とセッションが別で、リンクだとアプリに戻れないため）。Supabase のメールテンプレートに `{{ .Token }}` が必要
+- Google ログインはボタンのみ。OAuth クライアント設定後に有効化
+- 単位 lb は保存のみで表示は kg（換算対応は Phase 5）
+- 短冊は写真風の石テクスチャを使わず、黒地＋枠＋刻印風 text-shadow で表現
+- プロフィールは DB トリガーではなく「銘を切る」で upsert
+- ログイン後の e2e は service_role キーが必要になるため自動化していない（実機で確認）
+
+### 次
+- Supabase の URL 設定・メールテンプレートを済ませて、実機でオンボーディングを通しで確認
+- Phase 2：朝のチェックイン（04）とホーム（01）、`src/lib/trend.ts`
