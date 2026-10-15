@@ -112,20 +112,23 @@ export function useWorkouts(from: string, to: string) {
 }
 
 /** Recent logged sets for the given exercises (for "previous" ghosts and PR baselines). */
+export function fetchHistory(exerciseIds: string[]) {
+  return unwrap<HistorySet[]>(
+    getSupabase()
+      .from("workout_sets")
+      .select("workout_id, exercise_id, set_no, set_type, weight_kg, reps, rir, done_at")
+      .in("exercise_id", exerciseIds)
+      .not("done_at", "is", null)
+      .order("done_at", { ascending: false })
+      .limit(2000),
+  );
+}
+
 export function useExerciseHistory(exerciseIds: string[]) {
   return useQuery({
     queryKey: trainingKeys.history(exerciseIds),
     enabled: exerciseIds.length > 0,
-    queryFn: () =>
-      unwrap<HistorySet[]>(
-        getSupabase()
-          .from("workout_sets")
-          .select("workout_id, exercise_id, set_no, set_type, weight_kg, reps, rir, done_at")
-          .in("exercise_id", exerciseIds)
-          .not("done_at", "is", null)
-          .order("done_at", { ascending: false })
-          .limit(2000),
-      ),
+    queryFn: () => fetchHistory(exerciseIds),
   });
 }
 
