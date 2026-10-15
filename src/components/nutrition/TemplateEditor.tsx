@@ -24,6 +24,7 @@ export function TemplateEditor({
   const { write } = useSync();
   const [id] = useState(() => template?.id ?? crypto.randomUUID());
   const [name, setName] = useState(template?.name ?? "");
+  const [group, setGroup] = useState(template?.group_name ?? "");
   const [items, setItems] = useState<TemplateItem[]>(template?.items ?? []);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,6 +38,7 @@ export function TemplateEditor({
       id,
       name: name.trim(),
       order_idx: template?.order_idx ?? nextOrder,
+      group_name: group.trim() || null,
       items,
     };
     queryClient.setQueryData<Template[]>(nutritionKeys.templates, (list) =>
@@ -45,7 +47,13 @@ export function TemplateEditor({
     await write({
       table: "meal_templates",
       kind: "upsert",
-      payload: { id, user_id: userId, name: saved.name, order_idx: saved.order_idx },
+      payload: {
+        id,
+        user_id: userId,
+        name: saved.name,
+        order_idx: saved.order_idx,
+        group_name: saved.group_name,
+      },
     });
     await write({ table: "meal_template_items", kind: "delete", match: { template_id: id } });
     if (items.length > 0) {
@@ -83,6 +91,15 @@ export function TemplateEditor({
         placeholder="名前（例: 減量朝食）"
         aria-label="マイ定食の名前"
         className="surface placeholder:text-ghost h-14 px-4 text-xl font-bold focus:outline-none"
+      />
+
+      <input
+        value={group}
+        onChange={(e) => setGroup(e.target.value)}
+        maxLength={20}
+        placeholder="グループ（任意。例: 1食目）"
+        aria-label="グループ"
+        className="surface placeholder:text-ghost h-12 px-4 text-base focus:outline-none"
       />
 
       <ul className="surface overflow-hidden">

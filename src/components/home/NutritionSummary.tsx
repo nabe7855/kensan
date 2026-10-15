@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { dayTypeFor, isOver, macrosFor, sumMacros, targetFor } from "@/lib/nutrition";
+import { dayTotals } from "@/lib/meal-plan";
+import { dayTypeFor, isOver, targetFor } from "@/lib/nutrition";
 import { useDayMeals, useDayOverride, useTargets } from "@/lib/queries/nutrition";
 import { useRoutines } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
@@ -21,11 +22,7 @@ export function NutritionSummary({ today }: { today: string }) {
   const override = useDayOverride(today);
   const routines = useRoutines();
 
-  const eaten = useMemo(
-    () =>
-      sumMacros((meals.data ?? []).flatMap((m) => m.items.map((i) => macrosFor(i.food, i.grams)))),
-    [meals.data],
-  );
+  const eaten = useMemo(() => dayTotals(meals.data ?? []).eaten, [meals.data]);
   const dayType = dayTypeFor(today, routines.data ?? [], override.data ?? null);
   const target = targetFor(targets.data ?? [], today, dayType);
   if (!target) return null;

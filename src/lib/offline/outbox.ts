@@ -17,7 +17,10 @@ async function run(client: SupabaseClient, op: OutboxOp): Promise<Result> {
   const table = client.from(op.table);
   switch (op.kind) {
     case "upsert":
-      return table.upsert(op.payload ?? {}, op.onConflict ? { onConflict: op.onConflict } : {});
+      return table.upsert(op.payload ?? {}, {
+        ...(op.onConflict ? { onConflict: op.onConflict } : {}),
+        ...(op.ignoreDuplicates ? { ignoreDuplicates: true } : {}),
+      });
     case "insert":
       return table.insert(op.payload ?? {});
     case "update":

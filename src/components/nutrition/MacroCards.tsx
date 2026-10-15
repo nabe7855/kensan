@@ -1,4 +1,4 @@
-import { isOver, type Macros } from "@/lib/nutrition";
+import { isOver, ZERO, type Macros } from "@/lib/nutrition";
 import { cn } from "@/lib/utils";
 
 const KEYS = [
@@ -8,15 +8,28 @@ const KEYS = [
   { key: "kcal", label: "kcal", unit: "" },
 ] as const;
 
-/** Eaten / target per macro. Over the tolerance band turns amber; nothing turns red. */
-export function MacroCards({ eaten, target }: { eaten: Macros; target: Macros | null }) {
+/**
+ * Eaten / target per macro, with what is still planned as a lighter bar segment.
+ * Over the tolerance band turns amber; nothing turns red.
+ */
+export function MacroCards({
+  eaten,
+  planned = ZERO,
+  target,
+}: {
+  eaten: Macros;
+  planned?: Macros;
+  target: Macros | null;
+}) {
   return (
     <div className="grid grid-cols-4 gap-1.5">
       {KEYS.map(({ key, label, unit }) => {
         const v = Math.round(eaten[key]);
         const t = target ? Math.round(target[key]) : null;
         const over = t !== null && isOver(key, eaten[key], t);
-        const ratio = t ? Math.min(1, eaten[key] / t) : 0;
+        const overPlanned = t !== null && isOver(key, eaten[key] + planned[key], t);
+        const eatenRatio = t ? Math.min(1, eaten[key] / t) : 0;
+        const plannedRatio = t ? Math.min(1 - eatenRatio, planned[key] / t) : 0;
         return (
           <div key={key} className="surface flex flex-col px-2 pt-2 pb-2.5">
             <span className="label-en num text-sm">{label}</span>
@@ -31,11 +44,17 @@ export function MacroCards({ eaten, target }: { eaten: Macros; target: Macros | 
                 </span>
               )}
             </span>
-            <span className="bg-border mt-2 h-1.5 overflow-hidden rounded-full">
+            <span className="bg-border relative mt-2 h-1.5 overflow-hidden rounded-full">
               <span
-                className={cn("block h-full", over ? "bg-warn" : "bg-accent")}
-                style={{ width: `${ratio * 100}%` }}
+                className={cn("absolute inset-y-0 left-0", over ? "bg-warn" : "bg-accent")}
+                style={{ width: `${eatenRatio * 100}%` }}
               />
+              {plannedRatio > 0 && (
+                <span
+                  className={cn("absolute inset-y-0", overPlanned ? "bg-warn/40" : "bg-accent/35")}
+                  style={{ left: `${eatenRatio * 100}%`, width: `${plannedRatio * 100}%` }}
+                />
+              )}
             </span>
           </div>
         );
