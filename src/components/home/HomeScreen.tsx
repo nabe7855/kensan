@@ -10,6 +10,7 @@ import { addDaysISO, todayISO } from "@/lib/prep";
 import { useCheckins } from "@/lib/queries/checkins";
 import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
+import { TodayTrainingCard } from "./TodayTrainingCard";
 import { WeightChart } from "./WeightChart";
 
 const DIRECTION = {
@@ -77,6 +78,8 @@ export function HomeScreen() {
           <WeightChart points={weightChartPoints(entries, today, prep)} />
         </section>
       )}
+
+      <TodayTrainingCard today={today} />
 
       {showWhy && (
         <section className="surface border-l-accent border-l-2 px-4 py-4">

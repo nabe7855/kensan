@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addDaysISO, todayISO } from "@/lib/prep";
 import { useExercises, useRoutines, useWorkouts, type Routine } from "@/lib/queries/training";
+import { routineForDate } from "@/lib/routines";
 import { readActiveWorkout } from "@/lib/useActiveWorkout";
 import type { ActiveWorkout } from "@/lib/workout";
 import { MonthCalendar } from "./MonthCalendar";
@@ -17,11 +18,6 @@ const jstMidnight = (date: string) => `${date}T00:00:00+09:00`;
 
 const jstDate = (iso: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date(iso));
-
-export function todaysRoutine(routines: Routine[], today: string): Routine | null {
-  const weekday = new Date(`${today}T00:00:00`).getDay();
-  return routines.find((r) => r.weekdays.includes(weekday)) ?? null;
-}
 
 export function TrainingScreen() {
   const router = useRouter();
@@ -75,7 +71,7 @@ export function TrainingScreen() {
     router.push("/training/workout");
   }
 
-  const todayRoutine = routines.data ? todaysRoutine(routines.data, today) : null;
+  const todayRoutine = routines.data ? routineForDate(routines.data, today) : null;
 
   return (
     <div className="flex flex-col gap-6">
