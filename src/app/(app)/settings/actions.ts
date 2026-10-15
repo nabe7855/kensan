@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { authErrorMessage, changeEmailSchema, firstIssue } from "@/lib/auth";
 import { bodySchema, nameSchema } from "@/lib/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
@@ -74,4 +76,55 @@ export async function updateMealSlots(
   if (error) return FAILED;
   revalidatePath("/", "layout");
   return { saved: true };
+}
+
+export type EmailChangeState = SettingsState & { notice?: string; email?: string };
+
+export async function changeEmail(
+  _prev: EmailChangeState,
+  formData: FormData,
+): Promise<EmailChangeState> {
+  const parsed = changeEmailSchema.safeParse({
+    email: String(formData.get("email") ?? "").trim(),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  const { supabase, user } = await requireUser();
+  const next = parsed.data.email.toLowerCase();
+  if (next === user.email?.toLowerCase()) return { error: "今と同じメールアドレスです" };
+
+  // Re-authenticate so a borrowed, still-signed-in phone can't take over the account.
+  const check = await supabase.auth.signInWithPassword({
+    email: user.email ?? "",
+    password: parsed.data.password,
+  });
+  if (check.error) {
+    return {
+      error:
+        check.error.code === "invalid_credentials"
+          ? "今のパスワードが違います。パスワード未設定なら、先に「パスワードを設定・変更」から設定してください"
+          : authErrorMessage(check.error),
+    };
+  }
+
+  const origin = (await headers()).get("origin") ?? "";
+  const { data, error } = await supabase.auth.updateUser(
+    { email: next },
+    { emailRedirectTo: `${origin}/auth/callback?next=/home` },
+  );
+  if (error) {
+    return {
+      error:
+        error.code === "email_exists"
+          ? "このメールアドレスは別のアカウントで使われています"
+          : authErrorMessage(error),
+    };
+  }
+  revalidatePath("/settings");
+  if (data.user?.email?.toLowerCase() === next) return { saved: true, email: next };
+  return {
+    email: user.email ?? "",
+    notice: `${next} に確認メールを送りました。メールのリンクを開くと変更が完了します`,
+  };
 }
