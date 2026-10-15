@@ -488,6 +488,7 @@ export type Database = {
           height_cm: number | null
           onboarded_at: string | null
           sex: string | null
+          track_libido: boolean
           unit_pref: string
           updated_at: string
           user_id: string
@@ -498,6 +499,7 @@ export type Database = {
           height_cm?: number | null
           onboarded_at?: string | null
           sex?: string | null
+          track_libido?: boolean
           unit_pref?: string
           updated_at?: string
           user_id?: string
@@ -508,6 +510,7 @@ export type Database = {
           height_cm?: number | null
           onboarded_at?: string | null
           sex?: string | null
+          track_libido?: boolean
           unit_pref?: string
           updated_at?: string
           user_id?: string
