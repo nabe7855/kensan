@@ -3,10 +3,10 @@ import Dexie, { type EntityTable } from "dexie";
 export type OutboxOp = {
   id?: number;
   table: string;
-  kind: "upsert" | "insert" | "delete";
+  kind: "upsert" | "insert" | "update" | "delete";
   payload?: Record<string, unknown> | Record<string, unknown>[];
   onConflict?: string;
-  /** Equality filter for deletes. */
+  /** Equality filter for updates and deletes. */
   match?: Record<string, unknown>;
   createdAt: number;
   attempts: number;

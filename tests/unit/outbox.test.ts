@@ -17,6 +17,9 @@ function fakeClient(respond: (call: Call) => Result) {
     from: (table: string) => ({
       upsert: (arg: unknown) => exec({ table, kind: "upsert", arg }),
       insert: (arg: unknown) => exec({ table, kind: "insert", arg }),
+      update: (arg: unknown) => ({
+        match: (m: unknown) => exec({ table, kind: "update", arg: { arg, m } }),
+      }),
       delete: () => ({ match: (arg: unknown) => exec({ table, kind: "delete", arg }) }),
     }),
   } as unknown as SupabaseClient;
