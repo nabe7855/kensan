@@ -6,3 +6,11 @@ export function createClient() {
   const { url, anonKey } = supabaseEnv();
   return createBrowserClient<Database>(url, anonKey);
 }
+
+let browserClient: ReturnType<typeof createClient> | null = null;
+
+/** Shared browser client (one auth listener per tab). */
+export function getSupabase() {
+  browserClient ??= createClient();
+  return browserClient;
+}

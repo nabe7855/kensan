@@ -91,3 +91,14 @@ export function reachesTarget(
 ): boolean {
   return projectedWeight(startKg, ratePct, weeks) <= targetKg + 0.05;
 }
+
+/** Shift a YYYY-MM-DD date by whole days. */
+export function addDaysISO(date: string, days: number): string {
+  const d = parseISO(date);
+  d.setDate(d.getDate() + days);
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
+}
