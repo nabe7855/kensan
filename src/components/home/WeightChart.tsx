@@ -10,7 +10,13 @@ export type WeightChartPoint = {
   goalKg: number | null;
 };
 
-export function WeightChart({ points }: { points: WeightChartPoint[] }) {
+export function WeightChart({
+  points,
+  label = "直近30日の体重",
+}: {
+  points: WeightChartPoint[];
+  label?: string;
+}) {
   const values = points
     .flatMap((p) => [p.weightKg, p.trendKg, p.goalKg])
     .filter((v): v is number => v != null);
@@ -22,7 +28,7 @@ export function WeightChart({ points }: { points: WeightChartPoint[] }) {
   return (
     <div
       role="img"
-      aria-label={`直近30日の体重。7日平均 ${last?.trendKg?.toFixed(1) ?? "—"}kg`}
+      aria-label={`${label}。7日平均 ${last?.trendKg?.toFixed(1) ?? "—"}kg`}
       className="h-44 w-full"
     >
       <ResponsiveContainer width="100%" height="100%">
