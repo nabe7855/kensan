@@ -6,6 +6,8 @@ export type OutboxOp = {
   kind: "upsert" | "insert" | "update" | "delete";
   payload?: Record<string, unknown> | Record<string, unknown>[];
   onConflict?: string;
+  /** Upsert as insert-or-skip (ON CONFLICT DO NOTHING). */
+  ignoreDuplicates?: boolean;
   /** Equality filter for updates and deletes. */
   match?: Record<string, unknown>;
   createdAt: number;

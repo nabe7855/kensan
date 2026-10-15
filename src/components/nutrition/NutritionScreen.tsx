@@ -7,10 +7,9 @@ import { useAppData } from "@/components/providers/AppDataProvider";
 import { Button } from "@/components/ui/button";
 import { DateNav } from "@/components/ui/date-nav";
 import { fillReason, suggestFill } from "@/lib/fill";
-import { displayAmount } from "@/lib/food-groups";
+import { dayTotals } from "@/lib/meal-plan";
 import {
   dayTypeFor,
-  macrosFor,
   slotForHour,
   subtractMacros,
   sumMacros,
@@ -30,6 +29,9 @@ import { useRoutines } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
 import { FoodSheet } from "./FoodSheet";
 import { ItemSheet } from "./ItemSheet";
+import { MealCard } from "./MealCard";
+import { SaveSetSheet } from "./SaveSetSheet";
+import { SetSheet } from "./SetSheet";
 import { MacroCards } from "./MacroCards";
 import { TargetsSheet } from "./TargetsSheet";
 import { useMealActions } from "./useMealActions";
@@ -39,7 +41,9 @@ export function NutritionScreen() {
   const today = todayISO();
   const [date, setDate] = useState(today);
   const [slot, setSlot] = useState(() => slotForHour(new Date().getHours(), mealSlots));
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<string | null>(null);
+  const [choosingSet, setChoosingSet] = useState<string | null>(null);
+  const [savingSet, setSavingSet] = useState<string | null>(null);
   const [editing, setEditing] = useState<LogItem | null>(null);
   const [editingTargets, setEditingTargets] = useState(false);
   const [showAllFills, setShowAllFills] = useState(false);
@@ -55,12 +59,9 @@ export function NutritionScreen() {
 
   const dayType: DayType = dayTypeFor(date, routines.data ?? [], override.data ?? null);
   const target = targetFor(targets.data ?? [], date, dayType);
-  const eaten = useMemo(
-    () =>
-      sumMacros((meals.data ?? []).flatMap((m) => m.items.map((i) => macrosFor(i.food, i.grams)))),
-    [meals.data],
-  );
-  const remaining = target ? subtractMacros(target, eaten) : null;
+  const { eaten, planned } = useMemo(() => dayTotals(meals.data ?? []), [meals.data]);
+  // Fill suggestions cover what is left after everything planned is eaten.
+  const remaining = target ? subtractMacros(target, sumMacros([eaten, planned])) : null;
   const fills = useMemo(
     () => (remaining && frequent.data ? suggestFill(remaining, frequent.data) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,7 +97,7 @@ export function NutritionScreen() {
 
       <div className="flex items-start gap-2">
         <div className="flex-1">
-          <MacroCards eaten={eaten} target={target} />
+          <MacroCards eaten={eaten} planned={planned} target={target} />
         </div>
       </div>
       <button
@@ -156,50 +157,37 @@ export function NutritionScreen() {
         </p>
       )}
 
-      {slots.map((s) => {
-        const items = meals.data?.find((m) => m.slot === s)?.items ?? [];
-        const selected = s === slot;
+      {slots.map((s, index) => {
+        const meal = meals.data?.find((m) => m.slot === s) ?? null;
         return (
-          <section
-            key={s}
-            className={cn("surface overflow-hidden", selected && "border-accent/60")}
-          >
-            <button
-              type="button"
-              onClick={() => setSlot(s)}
-              aria-pressed={selected}
-              className="flex h-11 w-full items-center justify-between px-3"
-            >
-              <span className={cn("text-base font-bold", selected && "text-accent")}>{s}</span>
-              <span className="num text-ghost text-xs">
-                {Math.round(sumMacros(items.map((i) => macrosFor(i.food, i.grams))).kcal)} kcal
-              </span>
-            </button>
-            {items.length > 0 && (
-              <ul>
-                {items.map((i) => (
-                  <li key={i.id}>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(i)}
-                      className="border-border flex min-h-11 w-full items-center justify-between gap-2 border-t px-3 py-2 text-left"
-                    >
-                      <span className="text-sm leading-snug">
-                        {i.food.name}{" "}
-                        <span className="num">
-                          {displayAmount(i.food, i.grams).value}
-                          {displayAmount(i.food, i.grams).unit}
-                        </span>
-                      </span>
-                      <span className="num text-muted shrink-0 text-sm">
-                        {Math.round(macrosFor(i.food, i.grams).kcal)} kcal
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <MealCard
+            key={`${date}:${s}`}
+            index={index}
+            slot={s}
+            meal={meal}
+            selected={s === slot}
+            templates={templates.data ?? []}
+            onSelect={() => setSlot(s)}
+            onStep={(item, grams) =>
+              void (grams > 0 ? actions.updateGrams(item.id, grams) : actions.removeItem(item.id))
+            }
+            onEditItem={setEditing}
+            onAddFood={() => {
+              setSlot(s);
+              setAdding(s);
+            }}
+            onChangeSet={() => setChoosingSet(s)}
+            onApplyTemplate={(t) =>
+              void actions.applySet(s, {
+                id: t.id,
+                name: t.name,
+                items: t.items.map((i) => ({ food: i.food, grams: i.grams })),
+              })
+            }
+            onSaveSet={() => setSavingSet(s)}
+            onToggleEaten={(e) => void actions.setEaten(s, e)}
+            onClear={() => void actions.clearMeal(s)}
+          />
         );
       })}
 
@@ -238,7 +226,7 @@ export function NutritionScreen() {
 
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30">
         <div className="mx-auto max-w-[480px] px-4 pb-2">
-          <Button size="lg" className="w-full" onClick={() => setAdding(true)}>
+          <Button size="lg" className="w-full" onClick={() => setAdding(slot)}>
             ＋ {slot}に食品を追加
           </Button>
         </div>
@@ -246,11 +234,46 @@ export function NutritionScreen() {
 
       {adding && (
         <FoodSheet
-          slot={slot}
-          onClose={() => setAdding(false)}
-          onAdd={(food, grams) => void actions.addItems(slot, [{ food, grams }])}
+          slot={adding}
+          onClose={() => setAdding(null)}
+          onAdd={(food, grams) => void actions.addItems(adding, [{ food, grams }])}
         />
       )}
+      {choosingSet && (
+        <SetSheet
+          title={`${choosingSet}にセットを当てはめる`}
+          templates={templates.data ?? []}
+          onClose={() => setChoosingSet(null)}
+          onPick={(t) => {
+            void actions.applySet(choosingSet, {
+              id: t.id,
+              name: t.name,
+              items: t.items.map((i) => ({ food: i.food, grams: i.grams })),
+            });
+            setChoosingSet(null);
+          }}
+        />
+      )}
+      {savingSet &&
+        (() => {
+          const meal = meals.data?.find((m) => m.slot === savingSet);
+          const current = templates.data?.find((t) => t.id === meal?.templateId);
+          return (
+            <SaveSetSheet
+              defaultName={meal?.title ?? ""}
+              defaultGroup={current?.group_name ?? null}
+              templates={templates.data ?? []}
+              onClose={() => setSavingSet(null)}
+              onSave={(name, group) =>
+                void actions.saveAsSet(savingSet, {
+                  name,
+                  group,
+                  items: (meal?.items ?? []).map((i) => ({ food: i.food, grams: i.grams })),
+                })
+              }
+            />
+          );
+        })()}
       {editing && (
         <ItemSheet
           item={editing}

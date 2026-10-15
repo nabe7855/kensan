@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { PlanMeal } from "@/lib/meal-plan";
 import type { DayType, Food, Target } from "@/lib/nutrition";
 import { getSupabase } from "@/lib/supabase/client";
 
@@ -8,10 +9,16 @@ const FOOD_COLUMNS =
   "id, name, user_id, kcal, protein_g, fat_g, carb_g, is_cooked, source, food_group, unit_name, unit_grams";
 
 export type LogItem = { id: string; grams: number; food: Food };
-export type DayMeals = { slot: string; items: LogItem[] }[];
+export type DayMeals = PlanMeal[];
 
 export type TemplateItem = { id: string; grams: number; food: Food };
-export type Template = { id: string; name: string; order_idx: number; items: TemplateItem[] };
+export type Template = {
+  id: string;
+  name: string;
+  order_idx: number;
+  group_name: string | null;
+  items: TemplateItem[];
+};
 
 export const nutritionKeys = {
   day: (date: string) => ["meals", date] as const,
@@ -35,14 +42,27 @@ export function useDayMeals(date: string) {
   return useQuery({
     queryKey: nutritionKeys.day(date),
     queryFn: async (): Promise<DayMeals> => {
-      const rows = await unwrap<{ slot: string; meal_log_items: RawItem[] }[]>(
+      const rows = await unwrap<
+        {
+          slot: string;
+          eaten_at: string | null;
+          title: string | null;
+          template_id: string | null;
+          meal_log_items: RawItem[];
+        }[]
+      >(
         getSupabase()
           .from("meal_logs")
-          .select(`slot, meal_log_items(id, grams, created_at, foods(${FOOD_COLUMNS}))`)
+          .select(
+            `slot, eaten_at, title, template_id, meal_log_items(id, grams, created_at, foods(${FOOD_COLUMNS}))`,
+          )
           .eq("date", date),
       );
       return rows.map((r) => ({
         slot: r.slot,
+        eatenAt: r.eaten_at,
+        title: r.title,
+        templateId: r.template_id,
         items: [...r.meal_log_items]
           .sort((a, b) => a.created_at.localeCompare(b.created_at))
           .map((i) => ({ id: i.id, grams: i.grams, food: i.foods })),
@@ -60,12 +80,15 @@ export function useTemplates() {
           id: string;
           name: string;
           order_idx: number;
+          group_name: string | null;
           meal_template_items: { id: string; grams: number; foods: Food }[];
         }[]
       >(
         getSupabase()
           .from("meal_templates")
-          .select(`id, name, order_idx, meal_template_items(id, grams, foods(${FOOD_COLUMNS}))`)
+          .select(
+            `id, name, order_idx, group_name, meal_template_items(id, grams, foods(${FOOD_COLUMNS}))`,
+          )
           .order("order_idx")
           .order("created_at"),
       );
@@ -73,6 +96,7 @@ export function useTemplates() {
         id: r.id,
         name: r.name,
         order_idx: r.order_idx,
+        group_name: r.group_name,
         items: r.meal_template_items.map((i) => ({ id: i.id, grams: i.grams, food: i.foods })),
       }));
     },
