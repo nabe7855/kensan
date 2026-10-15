@@ -82,6 +82,9 @@ export default async function SettingsPage() {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-muted text-xs">アカウント</h2>
+        <Button asChild variant="secondary">
+          <Link href="/auth/reset">パスワードを設定・変更</Link>
+        </Button>
         <LogoutButton />
       </section>
     </div>
