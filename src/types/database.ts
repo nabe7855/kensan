@@ -250,10 +250,10 @@ export type Database = {
           },
           {
             foreignKeyName: "meal_log_items_meal_log_id_fkey"
-            columns: ["meal_log_id"]
+            columns: ["meal_log_id", "user_id"]
             isOneToOne: false
             referencedRelation: "meal_logs"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
@@ -322,10 +322,10 @@ export type Database = {
           },
           {
             foreignKeyName: "meal_template_items_template_id_fkey"
-            columns: ["template_id"]
+            columns: ["template_id", "user_id"]
             isOneToOne: false
             referencedRelation: "meal_templates"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
@@ -561,10 +561,10 @@ export type Database = {
           },
           {
             foreignKeyName: "routine_exercises_routine_id_fkey"
-            columns: ["routine_id"]
+            columns: ["routine_id", "user_id"]
             isOneToOne: false
             referencedRelation: "routines"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
@@ -696,10 +696,10 @@ export type Database = {
           },
           {
             foreignKeyName: "workout_sets_workout_id_fkey"
-            columns: ["workout_id"]
+            columns: ["workout_id", "user_id"]
             isOneToOne: false
             referencedRelation: "workouts"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
@@ -746,10 +746,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workouts_routine_id_fkey"
-            columns: ["routine_id"]
+            columns: ["routine_id", "user_id"]
             isOneToOne: false
             referencedRelation: "routines"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
