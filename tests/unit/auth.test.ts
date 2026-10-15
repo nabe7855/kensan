@@ -42,3 +42,14 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage(null)).toMatch(/もう一度/);
   });
 });
+
+describe("changeEmailSchema", () => {
+  it("needs a valid new email and the current password", async () => {
+    const { changeEmailSchema } = await import("@/lib/auth");
+    expect(changeEmailSchema.safeParse({ email: "new@example.com", password: "x" }).success).toBe(
+      true,
+    );
+    const noPw = changeEmailSchema.safeParse({ email: "new@example.com", password: "" });
+    expect(noPw.success || firstIssue(noPw.error)).toBe("今のパスワードを入力してください");
+  });
+});
