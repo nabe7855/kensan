@@ -3,7 +3,7 @@ import { Hamon } from "@/components/brand/Hamon";
 import { Logo } from "@/components/brand/Logo";
 import { EmailLoginForm } from "./EmailLoginForm";
 
-export const metadata: Metadata = { title: "メールでログイン | 研鑽" };
+export const metadata: Metadata = { title: "ログイン | 研鑽" };
 
 export default function EmailLoginPage() {
   return (
