@@ -39,7 +39,7 @@ export function NutritionSummary({ today }: { today: string }) {
       {ROWS.map(({ key, label, unit }) => {
         const left = Math.round(target[key] - eaten[key]);
         const over = isOver(key, eaten[key], target[key]);
-        const ratio = Math.min(1, eaten[key] / target[key]);
+        const ratio = target[key] > 0 ? Math.min(1, eaten[key] / target[key]) : 0;
         return (
           <div key={key} className="grid grid-cols-[2.5rem_1fr_4.5rem] items-center gap-3">
             <span className="label-en num text-lg">{label}</span>
