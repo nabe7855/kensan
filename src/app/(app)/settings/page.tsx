@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { EmailForm } from "@/components/settings/EmailForm";
 import { ExportButtons } from "@/components/settings/ExportButtons";
 import { LogoutButton } from "@/components/settings/LogoutButton";
 import { MealSlotsForm } from "@/components/settings/MealSlotsForm";
@@ -13,7 +14,7 @@ import { endPrep } from "./actions";
 export const metadata: Metadata = { title: "設定 | 研鑽" };
 
 export default async function SettingsPage() {
-  const { supabase, profile } = await getCurrentProfile();
+  const { supabase, user, profile } = await getCurrentProfile();
   const { data: prep } = await supabase
     .from("preps")
     .select("id, contest_name, contest_date, start_weight_kg, target_weight_kg, weekly_rate_pct")
@@ -82,6 +83,7 @@ export default async function SettingsPage() {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-muted text-xs">アカウント</h2>
+        <EmailForm currentEmail={user.email ?? ""} />
         <Button asChild variant="secondary">
           <Link href="/auth/reset">パスワードを設定・変更</Link>
         </Button>
