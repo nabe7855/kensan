@@ -2,59 +2,64 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
+import { authErrorMessage, emailSchema, firstIssue, loginSchema, signupSchema } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-export type EmailState = {
-  step: "email" | "code";
-  email: string;
-  error?: string;
-  notice?: string;
-};
+export type AuthState = { error?: string; notice?: string; email?: string };
 
-const emailSchema = z.email();
-const codeSchema = z.string().regex(/^\d{6,8}$/);
+const field = (formData: FormData, name: string) => String(formData.get(name) ?? "");
 
-async function requestCode(email: string): Promise<string | null> {
-  const origin = (await headers()).get("origin") ?? "";
+export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = field(formData, "email").trim();
+  const parsed = loginSchema.safeParse({ email, password: field(formData, "password") });
+  if (!parsed.success) return { email, error: firstIssue(parsed.error) };
+
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true, emailRedirectTo: `${origin}/auth/callback` },
-  });
-  if (!error) return null;
-  return error.status === 429
-    ? "送信回数の上限です。少し時間をおいてください"
-    : "送信できませんでした。もう一度お試しください";
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error) return { email, error: authErrorMessage(error) };
+  redirect("/home");
 }
 
-export async function emailLogin(prev: EmailState, formData: FormData): Promise<EmailState> {
-  const intent = formData.get("intent");
+export async function signup(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = field(formData, "email").trim();
+  const parsed = signupSchema.safeParse({
+    email,
+    password: field(formData, "password"),
+    confirm: field(formData, "confirm"),
+  });
+  if (!parsed.success) return { email, error: firstIssue(parsed.error) };
 
-  if (intent === "verify") {
-    const token = String(formData.get("code") ?? "").replace(/\s/g, "");
-    if (!codeSchema.safeParse(token).success) {
-      return { ...prev, notice: undefined, error: "コードは数字で入力してください" };
-    }
-    const supabase = await createClient();
-    const { error } = await supabase.auth.verifyOtp({ email: prev.email, token, type: "email" });
-    if (error) return { ...prev, notice: undefined, error: "コードが違うか、期限切れです" };
-    redirect("/home");
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin") ?? "";
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: { emailRedirectTo: `${origin}/auth/callback` },
+  });
+  if (error) return { email, error: authErrorMessage(error) };
+  // With "Confirm email" off, Supabase returns a session right away.
+  if (data.session) redirect("/onboarding");
+  // An existing address comes back without identities and without an error.
+  if (data.user && data.user.identities?.length === 0) {
+    return { email, error: authErrorMessage({ code: "user_already_exists" }) };
   }
+  return { email, notice: "確認メールを送りました。メールのリンクを開いてください" };
+}
 
-  if (intent === "resend") {
-    const error = await requestCode(prev.email);
-    return error
-      ? { ...prev, notice: undefined, error }
-      : { ...prev, error: undefined, notice: "コードを再送しました" };
-  }
+export async function requestReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = field(formData, "email").trim();
+  const parsed = emailSchema.safeParse({ email });
+  if (!parsed.success) return { email, error: firstIssue(parsed.error) };
 
-  const parsed = emailSchema.safeParse(String(formData.get("email") ?? "").trim());
-  if (!parsed.success) {
-    return { step: "email", email: "", error: "メールアドレスを確認してください" };
-  }
-  const error = await requestCode(parsed.data);
-  return error
-    ? { step: "email", email: parsed.data, error }
-    : { step: "code", email: parsed.data };
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin") ?? "";
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${origin}/auth/callback?next=/auth/reset`,
+  });
+  if (error) return { email, error: authErrorMessage(error) };
+  return {
+    email,
+    notice:
+      "登録されているアドレスなら、再設定のメールを送りました。メールのリンクをこの端末のブラウザで開いてください",
+  };
 }
