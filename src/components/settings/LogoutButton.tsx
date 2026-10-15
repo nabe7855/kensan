@@ -20,6 +20,7 @@ export function LogoutButton() {
       return;
     }
     await localDb().outbox.clear();
+    await localDb().kv.clear();
     queryClient.clear();
     await signOut();
   }
