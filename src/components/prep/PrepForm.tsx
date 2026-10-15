@@ -19,10 +19,26 @@ import {
 import { cn } from "@/lib/utils";
 import { GoalLineChart } from "./GoalLineChart";
 
+export type PrepInitial = {
+  id: string;
+  contest_name: string;
+  contest_date: string;
+  start_date: string;
+  start_weight_kg: number;
+  target_weight_kg: number;
+  weekly_rate_pct: number;
+  why_text: string | null;
+  reverse_enabled: boolean;
+};
+
 type Props = {
   today: string;
   defaultStartKg?: number;
   skipHref?: string;
+  /** Existing prep to edit in place (keeps its start date). */
+  initial?: PrepInitial;
+  /** Where to go after saving. */
+  next?: "/home" | "/onboarding/done";
 };
 
 const toKg = (s: string) => {
@@ -62,21 +78,24 @@ function WeightCard({
   );
 }
 
-export function PrepForm({ today, defaultStartKg, skipHref }: Props) {
+export function PrepForm({ today, defaultStartKg, skipHref, initial, next }: Props) {
   const [state, action, pending] = useActionState<FormState, FormData>(savePrep, {});
-  const [contestName, setContestName] = useState("");
-  const [contestDate, setContestDate] = useState("");
-  const [startKg, setStartKg] = useState(defaultStartKg ? defaultStartKg.toFixed(1) : "");
-  const [targetKg, setTargetKg] = useState("");
-  const [manualRate, setManualRate] = useState<number | null>(null);
-  const [why, setWhy] = useState("");
-  const [reverse, setReverse] = useState(false);
+  const startDate = initial?.start_date ?? today;
+  const [contestName, setContestName] = useState(initial?.contest_name ?? "");
+  const [contestDate, setContestDate] = useState(initial?.contest_date ?? "");
+  const [startKg, setStartKg] = useState(
+    (initial?.start_weight_kg ?? defaultStartKg)?.toFixed(1) ?? "",
+  );
+  const [targetKg, setTargetKg] = useState(initial?.target_weight_kg.toFixed(1) ?? "");
+  const [manualRate, setManualRate] = useState<number | null>(initial?.weekly_rate_pct ?? null);
+  const [why, setWhy] = useState(initial?.why_text ?? "");
+  const [reverse, setReverse] = useState(initial?.reverse_enabled ?? false);
 
   const plan = useMemo(() => {
     const start = toKg(startKg);
     const target = toKg(targetKg);
     if (!start || !target || !contestDate || target >= start) return null;
-    const weeks = weeksBetween(today, contestDate);
+    const weeks = weeksBetween(startDate, contestDate);
     if (weeks <= 0) return null;
     const rate = manualRate ?? suggestedWeeklyRate(start, target, weeks);
     return {
@@ -90,12 +109,14 @@ export function PrepForm({ today, defaultStartKg, skipHref }: Props) {
       points: goalLine(start, target, rate, weeks),
       daysLeft: daysUntilContest(contestDate, today),
     };
-  }, [startKg, targetKg, contestDate, manualRate, today]);
+  }, [startKg, targetKg, contestDate, manualRate, today, startDate]);
 
   const rate = plan?.rate ?? manualRate ?? 0.5;
 
   return (
     <form action={action} className="flex flex-1 flex-col gap-3">
+      {initial && <input type="hidden" name="prep_id" value={initial.id} />}
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="surface flex h-14 items-center justify-between gap-4 px-4">
         <span className="shrink-0 text-sm">大会</span>
         <input
@@ -236,7 +257,7 @@ export function PrepForm({ today, defaultStartKg, skipHref }: Props) {
 
       <div className="mt-auto flex flex-col gap-2 pt-4">
         <Button type="submit" size="lg" className="w-full" disabled={pending}>
-          プレップ開始
+          {initial ? "保存" : "プレップ開始"}
         </Button>
         {skipHref && (
           <Button asChild variant="ghost">
