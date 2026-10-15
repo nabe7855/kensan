@@ -197,6 +197,7 @@ export type Database = {
           created_at: string
           fat_g: number
           fiber_g: number | null
+          food_group: number | null
           id: string
           is_cooked: boolean
           kcal: number
@@ -204,6 +205,8 @@ export type Database = {
           protein_g: number
           sodium_mg: number | null
           source: string
+          unit_grams: number | null
+          unit_name: string | null
           updated_at: string
           user_id: string | null
         }
@@ -212,6 +215,7 @@ export type Database = {
           created_at?: string
           fat_g?: number
           fiber_g?: number | null
+          food_group?: number | null
           id?: string
           is_cooked?: boolean
           kcal: number
@@ -219,6 +223,8 @@ export type Database = {
           protein_g?: number
           sodium_mg?: number | null
           source?: string
+          unit_grams?: number | null
+          unit_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -227,6 +233,7 @@ export type Database = {
           created_at?: string
           fat_g?: number
           fiber_g?: number | null
+          food_group?: number | null
           id?: string
           is_cooked?: boolean
           kcal?: number
@@ -234,6 +241,8 @@ export type Database = {
           protein_g?: number
           sodium_mg?: number | null
           source?: string
+          unit_grams?: number | null
+          unit_name?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -288,28 +297,45 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          eaten_at: string | null
           id: string
           slot: string
+          template_id: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           date: string
+          eaten_at?: string | null
           id?: string
           slot: string
+          template_id?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
         Update: {
           created_at?: string
           date?: string
+          eaten_at?: string | null
           id?: string
           slot?: string
+          template_id?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meal_logs_template_fkey"
+            columns: ["template_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "meal_templates"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
       }
       meal_template_items: {
         Row: {
@@ -359,6 +385,7 @@ export type Database = {
       meal_templates: {
         Row: {
           created_at: string
+          group_name: string | null
           id: string
           name: string
           order_idx: number
@@ -367,6 +394,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          group_name?: string | null
           id?: string
           name: string
           order_idx?: number
@@ -375,6 +403,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          group_name?: string | null
           id?: string
           name?: string
           order_idx?: number

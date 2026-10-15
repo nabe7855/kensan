@@ -7,9 +7,16 @@ import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
-import { macrosFor, type Food } from "@/lib/nutrition";
-import { nutritionKeys, useFoodSearch, useFrequentFoods } from "@/lib/queries/nutrition";
-import { Keypad } from "./Keypad";
+import { FOOD_GROUPS, foodGroupLabel, hasUnit } from "@/lib/food-groups";
+import { type Food } from "@/lib/nutrition";
+import {
+  nutritionKeys,
+  useFoodSearch,
+  useFrequentFoods,
+  type FoodFilter,
+} from "@/lib/queries/nutrition";
+import { cn } from "@/lib/utils";
+import { AmountEntry } from "./AmountEntry";
 
 type Props = {
   slot: string;
@@ -18,6 +25,8 @@ type Props = {
 };
 
 function FoodRow({ food, onPick }: { food: Food; onPick: () => void }) {
+  const unit = hasUnit(food) ? food : null;
+  const serving = unit ? Math.round((food.kcal * unit.unit_grams) / 100) : null;
   return (
     <li>
       <button
@@ -25,15 +34,58 @@ function FoodRow({ food, onPick }: { food: Food; onPick: () => void }) {
         onClick={onPick}
         className="border-border flex min-h-14 w-full items-center justify-between gap-3 border-b px-1 py-2 text-left"
       >
-        <span className="text-base leading-snug">
-          {food.name}
-          {food.user_id && <span className="text-ghost ml-2 text-xs">マイ食品</span>}
+        <span className="flex flex-col">
+          <span className="text-base leading-snug">
+            {food.name}
+            {food.user_id && <span className="text-ghost ml-2 text-xs">マイ食品</span>}
+          </span>
+          <span className="text-ghost text-[11px]">
+            {[foodGroupLabel(food.food_group), unit && `1${unit.unit_name} ${unit.unit_grams}g`]
+              .filter(Boolean)
+              .join(" ・ ")}
+          </span>
         </span>
-        <span className="num text-ghost shrink-0 text-xs">
-          {Math.round(food.kcal)}kcal・P{food.protein_g}
+        <span className="num text-ghost shrink-0 text-right text-xs">
+          {unit && food.source === "dish" ? (
+            <>
+              {serving}kcal
+              <br />
+              /1{unit.unit_name}
+            </>
+          ) : (
+            <>
+              {Math.round(food.kcal)}kcal・P{food.protein_g}
+              <br />
+              /100g
+            </>
+          )}
         </span>
       </button>
     </li>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "h-9 shrink-0 rounded-md border px-3 text-xs",
+        active ? "border-accent bg-accent text-bg font-bold" : "border-border text-muted",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -42,26 +94,27 @@ const num = (s: string) => {
   return s.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null;
 };
 
-/** Search a food, then enter grams on the keypad. Also creates "マイ食品". */
+const sameFilter = (a: FoodFilter, b: FoodFilter) =>
+  a.kind === b.kind && (a.kind !== "group" || (b.kind === "group" && a.group === b.group));
+
+/** Search a food or dish (by name, food group or dish list), then enter the amount. Also creates "マイ食品". */
 export function FoodSheet({ slot, onClose, onAdd }: Props) {
   const { userId } = useAppData();
   const { write } = useSync();
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const deferred = useDeferredValue(q);
-  const search = useFoodSearch(deferred);
+  const [filter, setFilter] = useState<FoodFilter>({ kind: "all" });
+  const search = useFoodSearch(deferred, filter);
   const frequent = useFrequentFoods();
   const [picked, setPicked] = useState<Food | null>(null);
-  const [grams, setGrams] = useState("");
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ name: "", kcal: "", p: "", f: "", c: "" });
 
   if (picked) {
-    const g = Number(grams) || 0;
-    const m = macrosFor(picked, g);
     return (
       <Sheet title={`${slot}に追加`} onClose={onClose}>
-        <div className="flex flex-1 flex-col justify-end gap-3 pb-3">
+        <div className="flex flex-1 flex-col justify-end gap-3 overflow-y-auto pb-3">
           <button
             type="button"
             onClick={() => setPicked(null)}
@@ -69,21 +122,10 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
           >
             食品を選び直す
           </button>
-          <p className="text-lg">{picked.name}</p>
-          <p className="flex items-baseline justify-end gap-2">
-            <span className="num text-accent text-7xl leading-none">{grams || "0"}</span>
-            <span className="num text-muted text-2xl">g</span>
-          </p>
-          <p className="num text-muted text-right text-sm">
-            {Math.round(m.kcal)} kcal ・ P {m.protein_g.toFixed(1)} ・ F {m.fat_g.toFixed(1)} ・ C{" "}
-            {m.carb_g.toFixed(1)}
-          </p>
-          <Keypad
-            value={grams}
-            onChange={setGrams}
-            disabled={g <= 0}
-            onSubmit={() => {
-              onAdd(picked, g);
+          <AmountEntry
+            food={picked}
+            onSubmit={(grams) => {
+              onAdd(picked, grams);
               onClose();
             }}
           />
@@ -104,13 +146,19 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
       fat_g: num(draft.f) ?? 0,
       carb_g: num(draft.c) ?? 0,
       is_cooked: false,
+      source: "user",
+      food_group: null,
+      unit_name: null,
+      unit_grams: null,
     };
     queryClient.setQueryData<Food[]>(nutritionKeys.frequent, (list) => [food, ...(list ?? [])]);
     setPicked(food);
-    await write({ table: "foods", kind: "insert", payload: { ...food, source: "user" } });
+    await write({ table: "foods", kind: "insert", payload: food });
   }
 
-  const results = deferred.trim() ? (search.data ?? []) : (frequent.data ?? []);
+  const browsing = !!deferred.trim() || filter.kind !== "all";
+  const results = browsing ? (search.data ?? []) : (frequent.data ?? []);
+  const toggle = (f: FoodFilter) => setFilter((cur) => (sameFilter(cur, f) ? { kind: "all" } : f));
 
   return (
     <Sheet title={`${slot}に追加`} onClose={onClose}>
@@ -120,19 +168,34 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="食品名で検索（例: 鶏むね）"
-          aria-label="食品名で検索"
+          placeholder="食品名・料理名で検索（例: 鶏むね、親子丼）"
+          aria-label="食品名・料理名で検索"
           className="placeholder:text-ghost flex-1 bg-transparent text-base focus:outline-none"
         />
       </label>
-      <p className="text-ghost mt-2 text-xs">
-        {deferred.trim() ? "検索結果（100g あたり）" : "よく使う食品（100g あたり）"}
+      <div className="-mx-4 mt-2 flex shrink-0 gap-1.5 overflow-x-auto px-4 pb-1">
+        <FilterChip active={filter.kind === "dish"} onClick={() => toggle({ kind: "dish" })}>
+          料理
+        </FilterChip>
+        {FOOD_GROUPS.filter((g) => g.id !== 18).map((g) => (
+          <FilterChip
+            key={g.id}
+            active={filter.kind === "group" && filter.group === g.id}
+            onClick={() => toggle({ kind: "group", group: g.id })}
+          >
+            {g.label}
+          </FilterChip>
+        ))}
+      </div>
+      <p className="text-ghost mt-1 text-xs">
+        {browsing ? "検索結果" : "よく使う食品"}
+        {filter.kind === "dish" && "（料理の値は目安です）"}
       </p>
       <ul className="flex-1 overflow-y-auto">
         {results.map((f) => (
           <FoodRow key={f.id} food={f} onPick={() => setPicked(f)} />
         ))}
-        {deferred.trim() && search.isFetched && results.length === 0 && (
+        {browsing && search.isFetched && results.length === 0 && (
           <li className="text-muted py-6 text-sm">見つかりません。マイ食品として登録できます</li>
         )}
       </ul>

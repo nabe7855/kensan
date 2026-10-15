@@ -6,8 +6,8 @@ import { useMemo, useState } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { Button } from "@/components/ui/button";
 import { DateNav } from "@/components/ui/date-nav";
-import { Sheet } from "@/components/ui/sheet";
 import { fillReason, suggestFill } from "@/lib/fill";
+import { displayAmount } from "@/lib/food-groups";
 import {
   dayTypeFor,
   macrosFor,
@@ -29,59 +29,10 @@ import {
 import { useRoutines } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
 import { FoodSheet } from "./FoodSheet";
-import { Keypad } from "./Keypad";
+import { ItemSheet } from "./ItemSheet";
 import { MacroCards } from "./MacroCards";
 import { TargetsSheet } from "./TargetsSheet";
 import { useMealActions } from "./useMealActions";
-
-function ItemSheet({
-  item,
-  onClose,
-  onSave,
-  onDelete,
-}: {
-  item: LogItem;
-  onClose: () => void;
-  onSave: (grams: number) => void;
-  onDelete: () => void;
-}) {
-  const [grams, setGrams] = useState(String(item.grams));
-  const g = Number(grams) || 0;
-  const m = macrosFor(item.food, g);
-  return (
-    <Sheet title={item.food.name} onClose={onClose}>
-      <div className="flex flex-1 flex-col justify-end gap-3 pb-3">
-        <p className="flex items-baseline justify-end gap-2">
-          <span className="num text-accent text-7xl leading-none">{grams || "0"}</span>
-          <span className="num text-muted text-2xl">g</span>
-        </p>
-        <p className="num text-muted text-right text-sm">
-          {Math.round(m.kcal)} kcal ・ P {m.protein_g.toFixed(1)} ・ F {m.fat_g.toFixed(1)} ・ C{" "}
-          {m.carb_g.toFixed(1)}
-        </p>
-        <Keypad
-          value={grams}
-          onChange={setGrams}
-          submitLabel="保存"
-          disabled={g <= 0}
-          onSubmit={() => {
-            onSave(g);
-            onClose();
-          }}
-        />
-        <Button
-          variant="ghost"
-          onClick={() => {
-            onDelete();
-            onClose();
-          }}
-        >
-          この記録を削除
-        </Button>
-      </div>
-    </Sheet>
-  );
-}
 
 export function NutritionScreen() {
   const { mealSlots } = useAppData();
@@ -234,7 +185,11 @@ export function NutritionScreen() {
                       className="border-border flex min-h-11 w-full items-center justify-between gap-2 border-t px-3 py-2 text-left"
                     >
                       <span className="text-sm leading-snug">
-                        {i.food.name} <span className="num">{i.grams}g</span>
+                        {i.food.name}{" "}
+                        <span className="num">
+                          {displayAmount(i.food, i.grams).value}
+                          {displayAmount(i.food, i.grams).unit}
+                        </span>
                       </span>
                       <span className="num text-muted shrink-0 text-sm">
                         {Math.round(macrosFor(i.food, i.grams).kcal)} kcal

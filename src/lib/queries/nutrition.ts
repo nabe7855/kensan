@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import type { DayType, Food, Target } from "@/lib/nutrition";
 import { getSupabase } from "@/lib/supabase/client";
 
-const FOOD_COLUMNS = "id, name, user_id, kcal, protein_g, fat_g, carb_g, is_cooked";
+const FOOD_COLUMNS =
+  "id, name, user_id, kcal, protein_g, fat_g, carb_g, is_cooked, source, food_group, unit_name, unit_grams";
 
 export type LogItem = { id: string; grams: number; food: Food };
 export type DayMeals = { slot: string; items: LogItem[] }[];
@@ -133,20 +134,26 @@ export function useFrequentFoods() {
   });
 }
 
-export function useFoodSearch(q: string) {
+export type FoodFilter = { kind: "all" } | { kind: "dish" } | { kind: "group"; group: number };
+
+/** Name search, optionally narrowed to dishes or one food group; a filter alone lists that group. */
+export function useFoodSearch(q: string, filter: FoodFilter = { kind: "all" }) {
   const query = q.trim();
   return useQuery({
-    queryKey: nutritionKeys.search(query),
-    enabled: query.length > 0,
+    queryKey: [...nutritionKeys.search(query), filter],
+    enabled: query.length > 0 || filter.kind !== "all",
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const escaped = query.replace(/[%_,()]/g, " ");
-      const rows = await unwrap<Food[]>(
-        getSupabase().from("foods").select(FOOD_COLUMNS).ilike("name", `%${escaped}%`).limit(60),
-      );
-      return rows.sort(
-        (a, b) => Number(!!b.user_id) - Number(!!a.user_id) || a.name.length - b.name.length,
-      );
+      let req = getSupabase().from("foods").select(FOOD_COLUMNS);
+      if (query) req = req.ilike("name", `%${query.replace(/[%_,()]/g, " ")}%`);
+      if (filter.kind === "dish") req = req.eq("source", "dish");
+      if (filter.kind === "group") req = req.eq("food_group", filter.group);
+      const rows = await unwrap<Food[]>(req.order("name").limit(query ? 60 : 200));
+      return query
+        ? rows.sort(
+            (a, b) => Number(!!b.user_id) - Number(!!a.user_id) || a.name.length - b.name.length,
+          )
+        : rows;
     },
   });
 }
