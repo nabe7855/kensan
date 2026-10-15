@@ -93,6 +93,33 @@ export type Database = {
         }
         Relationships: []
       }
+      day_overrides: {
+        Row: {
+          created_at: string
+          date: string
+          day_type: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          day_type: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          day_type?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exercise_notes: {
         Row: {
           created_at: string
@@ -486,6 +513,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           height_cm: number | null
+          meal_slots: string[]
           onboarded_at: string | null
           sex: string | null
           track_libido: boolean
@@ -497,6 +525,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
+          meal_slots?: string[]
           onboarded_at?: string | null
           sex?: string | null
           track_libido?: boolean
@@ -508,6 +537,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
+          meal_slots?: string[]
           onboarded_at?: string | null
           sex?: string | null
           track_libido?: boolean
