@@ -210,6 +210,25 @@ export function useMealActions(date: string) {
     [patchDay, write],
   );
 
+  /** Swap an item for another food (used by 代わりを探す). */
+  const replaceItem = useCallback(
+    async (itemId: string, food: Food, grams: number) => {
+      patchDay((day) =>
+        day.map((m) => ({
+          ...m,
+          items: m.items.map((i) => (i.id === itemId ? { ...i, food, grams } : i)),
+        })),
+      );
+      await write({
+        table: "meal_log_items",
+        kind: "update",
+        match: { id: itemId },
+        payload: { food_id: food.id, grams },
+      });
+    },
+    [patchDay, write],
+  );
+
   const removeItem = useCallback(
     async (itemId: string) => {
       patchDay((day) => day.map((m) => ({ ...m, items: m.items.filter((i) => i.id !== itemId) })));
@@ -258,6 +277,7 @@ export function useMealActions(date: string) {
     clearMeal,
     saveAsSet,
     updateGrams,
+    replaceItem,
     removeItem,
     setOverride,
     saveTargets,
