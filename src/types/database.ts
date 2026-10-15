@@ -456,7 +456,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           reverse_plan?: Json | null
-          start_date: string
+          start_date?: string
           start_weight_kg: number
           target_weight_kg: number
           updated_at?: string
@@ -486,6 +486,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           height_cm: number | null
+          onboarded_at: string | null
           sex: string | null
           unit_pref: string
           updated_at: string
@@ -495,6 +496,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
+          onboarded_at?: string | null
           sex?: string | null
           unit_pref?: string
           updated_at?: string
@@ -504,6 +506,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
+          onboarded_at?: string | null
           sex?: string | null
           unit_pref?: string
           updated_at?: string

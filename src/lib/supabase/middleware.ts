@@ -31,11 +31,16 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  if (!user && !isPublic) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.search = "";
-    return NextResponse.redirect(loginUrl);
+  const redirectTo = (path: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = path;
+    url.search = "";
+    return NextResponse.redirect(url);
+  };
+
+  if (!user && !isPublic) return redirectTo("/login");
+  if (user && (pathname === "/login" || pathname.startsWith("/login/"))) {
+    return redirectTo("/home");
   }
 
   return response;

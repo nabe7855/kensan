@@ -2,11 +2,14 @@ import { BottomTabBar } from "@/components/shell/BottomTabBar";
 import { PrepHeader } from "@/components/shell/PrepHeader";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { todayISO } from "@/lib/prep";
-import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
+  const { supabase, profile } = await getCurrentProfile();
+  if (!profile?.onboarded_at) redirect("/onboarding");
+
   const { data: prep } = await supabase
     .from("preps")
     .select("contest_date, start_date")
