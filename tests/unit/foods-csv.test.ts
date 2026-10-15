@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { foodsToSql, parseCsv, parseMextFoods, parseMextNumber } from "@/lib/foods-csv";
+import {
+  foodGroupFromCode,
+  foodsToSql,
+  parseCsv,
+  parseMextFoods,
+  parseMextNumber,
+} from "@/lib/foods-csv";
 
 describe("parseCsv", () => {
   it("handles quotes, escaped quotes and CRLF", () => {
@@ -42,7 +48,9 @@ describe("parseMextFoods", () => {
       carb_g: 0.1,
       fiber_g: 0,
       sodium_mg: 42,
+      food_group: 11,
     });
+    expect(foods[1]!.food_group).toBe(1);
     expect(foods[1]!.carb_g).toBe(37.1);
   });
 
@@ -60,9 +68,20 @@ describe("parseMextFoods", () => {
         carb_g: 0,
         fiber_g: null,
         sodium_mg: null,
+        food_group: 1,
       },
     ]);
-    expect(sql).toContain("'O''Brien めし', 1, 0, 0, 0, null, null, true");
+    expect(sql).toContain("'O''Brien めし', 1, 0, 0, 0, null, null, 1, true");
     expect(sql).toContain("where not exists");
+  });
+});
+
+describe("foodGroupFromCode", () => {
+  it("reads the MEXT group from the first two digits", () => {
+    expect(foodGroupFromCode("11220")).toBe(11);
+    expect(foodGroupFromCode("01088")).toBe(1);
+    expect(foodGroupFromCode("18001")).toBe(18);
+    expect(foodGroupFromCode("99999")).toBeNull();
+    expect(foodGroupFromCode("")).toBeNull();
   });
 });
