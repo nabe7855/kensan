@@ -139,7 +139,7 @@ export function useExerciseNotes() {
       const rows = await unwrap<{ exercise_id: string; note: string }[]>(
         getSupabase().from("exercise_notes").select("exercise_id, note"),
       );
-      return new Map(rows.map((r) => [r.exercise_id, r.note]));
+      return Object.fromEntries(rows.map((r) => [r.exercise_id, r.note])) as Record<string, string>;
     },
   });
 }

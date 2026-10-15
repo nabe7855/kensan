@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ExportButtons } from "@/components/settings/ExportButtons";
 import { LogoutButton } from "@/components/settings/LogoutButton";
 import { MealSlotsForm } from "@/components/settings/MealSlotsForm";
 import { ProfileForm } from "@/components/settings/ProfileForm";
@@ -72,6 +73,11 @@ export default async function SettingsPage() {
             <Link href="/settings/prep">プレップを設定</Link>
           </Button>
         )}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-muted text-xs">CSV エクスポート</h2>
+        <ExportButtons />
       </section>
 
       <section className="flex flex-col gap-2">

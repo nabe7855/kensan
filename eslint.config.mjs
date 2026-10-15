@@ -14,6 +14,8 @@ const config = [
       "test-results/",
       "src/types/database.ts",
       "next-env.d.ts",
+      "public/sw.js",
+      "public/swe-worker-*.js",
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),

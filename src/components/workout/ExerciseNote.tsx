@@ -18,11 +18,10 @@ export function ExerciseNote({ exerciseId, note }: { exerciseId: string; note: s
     setEditing(false);
     const trimmed = value.trim();
     if (trimmed === note) return;
-    queryClient.setQueryData<Map<string, string>>(trainingKeys.notes, (m) => {
-      const next = new Map(m);
-      next.set(exerciseId, trimmed);
-      return next;
-    });
+    queryClient.setQueryData<Record<string, string>>(trainingKeys.notes, (m) => ({
+      ...m,
+      [exerciseId]: trimmed,
+    }));
     await write({
       table: "exercise_notes",
       kind: "upsert",

@@ -231,7 +231,7 @@ export function WorkoutScreen() {
             <ExerciseNote
               key={current.exerciseId}
               exerciseId={current.exerciseId}
-              note={notes?.get(current.exerciseId) ?? ""}
+              note={notes?.[current.exerciseId] ?? ""}
             />
           </div>
 

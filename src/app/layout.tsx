@@ -20,6 +20,10 @@ const notoSansJP = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: "研鑽 KENSAN",
   description: "最後まで、研ぎ切る。",
+  applicationName: "研鑽",
+  appleWebApp: { capable: true, title: "研鑽", statusBarStyle: "black-translucent" },
+  icons: { apple: "/icons/apple-touch-icon.png", icon: "/icons/icon-192.png" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
