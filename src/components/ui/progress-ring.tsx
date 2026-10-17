@@ -49,7 +49,14 @@ export function ProgressRing({
       aria-label={label}
     >
       <svg viewBox={`0 0 ${size} ${size}`} className="size-full -rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={COLORS.border} strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={COLORS.border}
+          strokeWidth={stroke}
+        />
         {after > 0 && (
           <circle
             cx={size / 2}
@@ -77,7 +84,9 @@ export function ProgressRing({
           className={arc}
         />
       </svg>
-      {children && <div className="absolute inset-0 flex items-center justify-center">{children}</div>}
+      {children && (
+        <div className="absolute inset-0 flex items-center justify-center">{children}</div>
+      )}
     </div>
   );
 }

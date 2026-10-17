@@ -23,11 +23,7 @@ export function useTodayStatus(): Record<string, TabStatus> {
   const checkins = useCheckins(today, today);
 
   return useMemo(() => {
-    const target = targetFor(
-      targets.data ?? [],
-      today,
-      dayTypeFor(trained, override.data ?? null),
-    );
+    const target = targetFor(targets.data ?? [], today, dayTypeFor(trained, override.data ?? null));
     const { eaten } = dayTotals(meals.data ?? []);
     const protein = ringProgress(eaten.protein_g, target?.protein_g);
     const checkedIn = (checkins.data ?? []).some((c) => c.date === today);
