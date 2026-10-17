@@ -192,7 +192,8 @@ export function useFoodSearch(q: string, filter: FoodFilter = { kind: "all" }) {
 export function useDailyIntake(from: string, to: string) {
   return useQuery({
     queryKey: ["daily-intake", from, to],
-    queryFn: async (): Promise<Map<string, number>> => {
+    // A plain object, not a Map: the query cache is persisted as JSON.
+    queryFn: async (): Promise<Record<string, number>> => {
       const rows = await unwrap<
         {
           date: string;
@@ -207,13 +208,13 @@ export function useDailyIntake(from: string, to: string) {
           .lte("date", to)
           .not("eaten_at", "is", null),
       );
-      const byDay = new Map<string, number>();
+      const byDay: Record<string, number> = {};
       for (const r of rows) {
         const kcal = r.meal_log_items.reduce(
           (s, i) => s + ((i.foods?.kcal ?? 0) * i.grams) / 100,
           0,
         );
-        byDay.set(r.date, (byDay.get(r.date) ?? 0) + kcal);
+        byDay[r.date] = (byDay[r.date] ?? 0) + kcal;
       }
       return byDay;
     },
