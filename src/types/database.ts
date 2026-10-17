@@ -193,6 +193,7 @@ export type Database = {
       }
       foods: {
         Row: {
+          aliases: string | null
           carb_g: number
           created_at: string
           fat_g: number
@@ -211,6 +212,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          aliases?: string | null
           carb_g?: number
           created_at?: string
           fat_g?: number
@@ -229,6 +231,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          aliases?: string | null
           carb_g?: number
           created_at?: string
           fat_g?: number
