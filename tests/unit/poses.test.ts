@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { daysApart, filterPhotos, fitWithin, parseTags, photoPath, usedValues } from "@/lib/poses";
+import {
+  daysApart,
+  filterPhotos,
+  fitWithin,
+  parseTags,
+  photoPath,
+  pickEncoding,
+  usedValues,
+} from "@/lib/poses";
 
 const photo = (id: string, taken_on: string, pose: string, tags: string[] = []) => ({
   id,
@@ -49,8 +57,17 @@ describe("helpers", () => {
   });
 
   it("builds per-user paths and day gaps", () => {
-    expect(photoPath("u1", "p1")).toBe("u1/p1.jpg");
+    expect(photoPath("u1", "p1")).toBe("u1/p1.webp");
+    expect(photoPath("u1", "p1", "jpg")).toBe("u1/p1.jpg");
     expect(daysApart("2026-10-01", "2026-10-13")).toBe("12日差");
     expect(daysApart("2026-10-01", "2026-10-01")).toBe("同じ日");
+  });
+});
+
+describe("pickEncoding", () => {
+  it("accepts WebP or JPEG and rejects the PNG a canvas falls back to", () => {
+    expect(pickEncoding("image/webp")?.ext).toBe("webp");
+    expect(pickEncoding("image/jpeg")?.ext).toBe("jpg");
+    expect(pickEncoding("image/png")).toBeNull();
   });
 });
