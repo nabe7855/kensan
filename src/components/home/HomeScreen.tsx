@@ -82,7 +82,7 @@ export function HomeScreen() {
 
       <NutritionSummary today={today} />
 
-      <TodayTrainingCard today={today} />
+      <TodayTrainingCard />
 
       {showWhy && (
         <section className="surface border-l-accent border-l-2 px-4 py-4">

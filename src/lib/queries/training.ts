@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { Session, SessionSet } from "@/lib/sessions";
 import { getSupabase } from "@/lib/supabase/client";
 
 export type Exercise = {
@@ -76,25 +77,6 @@ export function useExercises() {
   });
 }
 
-export function useRoutines() {
-  return useQuery({
-    queryKey: trainingKeys.routines,
-    queryFn: async () => {
-      const rows = await unwrap<Routine[]>(
-        getSupabase()
-          .from("routines")
-          .select(
-            "id, name, order_idx, weekdays, routine_exercises(id, exercise_id, order_idx, target_sets, target_reps, target_rir, rest_sec)",
-          )
-          .order("order_idx")
-          .order("created_at"),
-      );
-      for (const r of rows) r.routine_exercises.sort((a, b) => a.order_idx - b.order_idx);
-      return rows;
-    },
-  });
-}
-
 /** Workouts started between two ISO timestamps. */
 export function useWorkouts(from: string, to: string) {
   return useQuery({
@@ -159,4 +141,45 @@ export function previousSetsByExercise(history: HistorySet[]): Map<string, Histo
   }
   for (const list of result.values()) list.sort((a, b) => a.set_no - b.set_no);
   return result;
+}
+
+/** Workouts with their sets and exercise info, started in [from, to) (ISO timestamps). */
+export function useSessions(from: string, to: string) {
+  return useQuery({
+    queryKey: ["sessions", from, to],
+    queryFn: async (): Promise<Session[]> => {
+      const rows = await unwrap<
+        (Omit<Session, "sets"> & {
+          workout_sets: (Omit<SessionSet, "exercise"> & {
+            exercises: SessionSet["exercise"];
+          })[];
+        })[]
+      >(
+        getSupabase()
+          .from("workouts")
+          .select(
+            "id, started_at, ended_at, pump, soreness, joint, load_feel, workout_sets(exercise_id, set_no, set_type, weight_kg, reps, rir, is_pr, done_at, exercises(name_ja, muscle_groups))",
+          )
+          .gte("started_at", from)
+          .lt("started_at", to)
+          .order("started_at", { ascending: false }),
+      );
+      return rows.map(({ workout_sets, ...w }) => ({
+        ...w,
+        sets: workout_sets.map(({ exercises, ...s }) => ({ ...s, exercise: exercises })),
+      }));
+    },
+  });
+}
+
+/** Start of a JST calendar day as an ISO timestamp with offset. */
+export const jstMidnight = (date: string) => `${date}T00:00:00+09:00`;
+
+/** Whether a workout was recorded on the date (JST). */
+export function useTrainedOn(date: string) {
+  const next = new Date(`${date}T00:00:00+09:00`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const to = jstMidnight(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(next));
+  const q = useSessions(jstMidnight(date), to);
+  return (q.data?.length ?? 0) > 0;
 }

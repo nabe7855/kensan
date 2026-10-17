@@ -7,7 +7,7 @@ import { useMealActions } from "@/components/nutrition/useMealActions";
 import { dayTotals } from "@/lib/meal-plan";
 import { dayTypeFor, isOver, targetFor } from "@/lib/nutrition";
 import { useDayMeals, useDayOverride, useTargets } from "@/lib/queries/nutrition";
-import { useRoutines } from "@/lib/queries/training";
+import { useTrainedOn } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
 
 const ROWS = [
@@ -22,12 +22,12 @@ export function NutritionSummary({ today }: { today: string }) {
   const meals = useDayMeals(today);
   const targets = useTargets();
   const override = useDayOverride(today);
-  const routines = useRoutines();
+  const trained = useTrainedOn(today);
   const actions = useMealActions(today);
   const [editing, setEditing] = useState(false);
 
   const eaten = useMemo(() => dayTotals(meals.data ?? []).eaten, [meals.data]);
-  const dayType = dayTypeFor(today, routines.data ?? [], override.data ?? null);
+  const dayType = dayTypeFor(trained, override.data ?? null);
   const target = targetFor(targets.data ?? [], today, dayType);
   const dayLabel = dayType === "train" ? "トレ日" : "オフ日";
 
