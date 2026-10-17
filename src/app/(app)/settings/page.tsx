@@ -53,6 +53,9 @@ export default async function SettingsPage() {
             <Button asChild variant="secondary">
               <Link href="/settings/prep">プレップを編集</Link>
             </Button>
+            <Button asChild variant="secondary">
+              <Link href="/plan">減量フェーズの目安</Link>
+            </Button>
             <form action={endPrep.bind(null, prep.id)}>
               <ConfirmSubmit
                 variant="ghost"
