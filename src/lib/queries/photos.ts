@@ -40,9 +40,9 @@ export function useSignedUrls(paths: string[]) {
         .storage.from(BUCKET)
         .createSignedUrls(paths, URL_TTL_SEC);
       if (error) throw error;
-      return Object.fromEntries(
-        data.filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl]),
-      );
+      const urls: Record<string, string> = {};
+      for (const d of data) if (d.path && d.signedUrl) urls[d.path] = d.signedUrl;
+      return urls;
     },
   });
 }
