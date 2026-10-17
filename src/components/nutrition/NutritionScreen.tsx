@@ -17,7 +17,7 @@ import {
   useTemplates,
   type LogItem,
 } from "@/lib/queries/nutrition";
-import { useRoutines } from "@/lib/queries/training";
+import { useTrainedOn } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
 import { FoodSheet } from "./FoodSheet";
 import { ItemSheet } from "./ItemSheet";
@@ -54,11 +54,11 @@ export function NutritionScreen() {
   const templates = useTemplates();
   const targets = useTargets();
   const override = useDayOverride(date);
-  const routines = useRoutines();
+  const trained = useTrainedOn(date);
   const frequent = useFrequentFoods();
   const actions = useMealActions(date);
 
-  const dayType: DayType = dayTypeFor(date, routines.data ?? [], override.data ?? null);
+  const dayType: DayType = dayTypeFor(trained, override.data ?? null);
   const target = targetFor(targets.data ?? [], date, dayType);
   const { eaten, planned } = useMemo(() => dayTotals(meals.data ?? []), [meals.data]);
   // Fill suggestions cover what is left after everything planned is eaten.

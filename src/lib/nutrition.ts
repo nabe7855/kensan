@@ -1,5 +1,3 @@
-import { routineForDate, type WeekdayRoutine } from "./routines";
-
 export type Macros = { kcal: number; protein_g: number; fat_g: number; carb_g: number };
 
 export type Food = Macros & {
@@ -51,14 +49,10 @@ export function subtractMacros(a: Macros, b: Macros): Macros {
 
 export type DayType = "train" | "off";
 
-/** Train/off day comes from routine weekdays, unless the user overrode it for that date. */
-export function dayTypeFor(
-  date: string,
-  routines: WeekdayRoutine[],
-  override: DayType | null,
-): DayType {
+/** Train/off day: a day with a recorded workout is a training day, unless the user overrode it. */
+export function dayTypeFor(trained: boolean, override: DayType | null): DayType {
   if (override) return override;
-  return routineForDate(routines, date) ? "train" : "off";
+  return trained ? "train" : "off";
 }
 
 export type Target = Macros & { effective_from: string; day_type: DayType };

@@ -46,12 +46,11 @@ describe("macros", () => {
 });
 
 describe("dayTypeFor / targetFor", () => {
-  const routines = [{ weekdays: [1, 4], order_idx: 0 }];
-
-  it("follows routine weekdays unless overridden", () => {
-    expect(dayTypeFor("2026-10-12", routines, null)).toBe("train"); // Monday
-    expect(dayTypeFor("2026-10-13", routines, null)).toBe("off");
-    expect(dayTypeFor("2026-10-13", routines, "train")).toBe("train");
+  it("is a training day when a workout was recorded, unless overridden", () => {
+    expect(dayTypeFor(true, null)).toBe("train");
+    expect(dayTypeFor(false, null)).toBe("off");
+    expect(dayTypeFor(false, "train")).toBe("train");
+    expect(dayTypeFor(true, "off")).toBe("off");
   });
 
   it("uses the latest target already in effect", () => {
