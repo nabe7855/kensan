@@ -565,6 +565,48 @@ export type Database = {
           },
         ]
       }
+      pose_photos: {
+        Row: {
+          created_at: string
+          height: number | null
+          id: string
+          note: string | null
+          path: string
+          pose: string
+          tags: string[]
+          taken_on: string
+          updated_at: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          note?: string | null
+          path: string
+          pose: string
+          tags?: string[]
+          taken_on: string
+          updated_at?: string
+          user_id?: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          note?: string | null
+          path?: string
+          pose?: string
+          tags?: string[]
+          taken_on?: string
+          updated_at?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       preps: {
         Row: {
           contest_date: string
