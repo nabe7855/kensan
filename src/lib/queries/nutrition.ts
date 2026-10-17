@@ -187,3 +187,36 @@ export function useFoodSearch(q: string, filter: FoodFilter = { kind: "all" }) {
     },
   });
 }
+
+/** Eaten kcal per day in [from, to] (dates), for estimating maintenance. */
+export function useDailyIntake(from: string, to: string) {
+  return useQuery({
+    queryKey: ["daily-intake", from, to],
+    // A plain object, not a Map: the query cache is persisted as JSON.
+    queryFn: async (): Promise<Record<string, number>> => {
+      const rows = await unwrap<
+        {
+          date: string;
+          eaten_at: string | null;
+          meal_log_items: { grams: number; foods: { kcal: number } | null }[];
+        }[]
+      >(
+        getSupabase()
+          .from("meal_logs")
+          .select("date, eaten_at, meal_log_items(grams, foods(kcal))")
+          .gte("date", from)
+          .lte("date", to)
+          .not("eaten_at", "is", null),
+      );
+      const byDay: Record<string, number> = {};
+      for (const r of rows) {
+        const kcal = r.meal_log_items.reduce(
+          (s, i) => s + ((i.foods?.kcal ?? 0) * i.grams) / 100,
+          0,
+        );
+        byDay[r.date] = (byDay[r.date] ?? 0) + kcal;
+      }
+      return byDay;
+    },
+  });
+}
