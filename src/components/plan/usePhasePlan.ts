@@ -20,7 +20,7 @@ const KEY = "maintenanceKcal";
 export type MaintenanceSource = "manual" | "records" | "weight";
 
 /** The active prep split into phases, with the maintenance it is based on (editable, kept on device). */
-export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null) {
+export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null, draftStart?: string) {
   const { prep } = useAppData();
   // While editing, the draft previews the new lengths; otherwise the saved split (or default).
   const split = draftSplit !== undefined ? draftSplit : (prep?.phase_split ?? null);
@@ -56,7 +56,7 @@ export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null) {
       prep && maintenance
         ? planPhases(
             {
-              startDate: prep.start_date,
+              startDate: draftStart ?? prep.start_date,
               contestDate: prep.contest_date,
               startKg: prep.start_weight_kg,
               targetKg: prep.target_weight_kg,
@@ -65,7 +65,7 @@ export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null) {
             split,
           )
         : [],
-    [prep, maintenance, split],
+    [prep, maintenance, split, draftStart],
   );
 
   return {
