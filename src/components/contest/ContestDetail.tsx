@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -249,6 +250,10 @@ export function ContestDetail({ id }: { id: string }) {
           )}
         </section>
       )}
+
+      <Button asChild variant="secondary">
+        <Link href="/album">ポーズ写真を撮る・比べる</Link>
+      </Button>
 
       <RoutineEditor />
 

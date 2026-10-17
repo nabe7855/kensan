@@ -1,5 +1,7 @@
 "use client";
 
+import { Camera } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { DateNav } from "@/components/ui/date-nav";
 import { addDaysISO, todayISO } from "@/lib/prep";
@@ -20,6 +22,17 @@ export function CheckinScreen() {
       <DateNav date={date} today={today} onChange={setDate}>
         {existing && <span className="text-ghost ml-2 text-xs">記録済み</span>}
       </DateNav>
+
+      <Link
+        href="/album"
+        className="surface flex min-h-12 items-center justify-between gap-2 px-4 py-2 text-sm"
+      >
+        <span className="flex items-center gap-2">
+          <Camera aria-hidden className="text-accent size-4" />
+          ポーズ写真
+        </span>
+        <span className="text-ghost text-xs">ポーズごとに比べる</span>
+      </Link>
 
       {isError ? (
         <p className="text-warn text-sm">
