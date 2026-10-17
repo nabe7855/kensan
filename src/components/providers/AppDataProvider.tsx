@@ -13,11 +13,16 @@ export type ActivePrep = {
   why_text: string | null;
 };
 
+export type TrainingPhase = "bulk" | "maintain" | "cut";
+
 export type AppData = {
   userId: string;
   displayName: string;
   trackLibido: boolean;
   mealSlots: string[];
+  showRir: boolean;
+  trainingPhase: TrainingPhase;
+  plateauAlerts: boolean;
   prep: ActivePrep | null;
 };
 

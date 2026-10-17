@@ -36,3 +36,14 @@ describe("presets", () => {
     expect([45, 90, 120].map(presetLabel)).toEqual(["45秒", "1分30秒", "2分"]);
   });
 });
+
+describe("set intervals", () => {
+  it("measures completion to completion and skips long breaks", async () => {
+    const { setIntervals, averageInterval } = await import("@/lib/rest-timer");
+    const t = (m: number, s = 0) => new Date(Date.UTC(2026, 9, 17, 10, m, s)).toISOString();
+    const gaps = setIntervals([t(0), t(2, 30), null, t(5), t(30)]);
+    expect(gaps).toEqual([null, 150, null, 150, null]);
+    expect(averageInterval(gaps)).toBe(150);
+    expect(averageInterval([null])).toBeNull();
+  });
+});

@@ -1,8 +1,11 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useState } from "react";
+import { Sheet } from "@/components/ui/sheet";
 import type { HistorySet } from "@/lib/queries/training";
-import { SET_TYPES, nextSetType } from "@/lib/strength";
+import { formatRest, setIntervals } from "@/lib/rest-timer";
+import { SET_TYPES, type SetType } from "@/lib/strength";
 import { setDiff } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 import type { DraftSet } from "@/lib/workout";
@@ -15,6 +18,7 @@ type Props = {
   onChange: (index: number, patch: Partial<DraftSet>) => void;
   onToggle: (index: number) => void;
   onFocusRow: (index: number) => void;
+  showRir?: boolean;
 };
 
 const fmt = (n: number | null | undefined) => (n == null ? "" : String(n));
@@ -35,11 +39,24 @@ export function SetTable({
   onChange,
   onToggle,
   onFocusRow,
+  showRir = false,
 }: Props) {
+  const [picking, setPicking] = useState<number | null>(null);
+  const cols = showRir
+    ? "grid-cols-[3rem_1.4fr_1fr_0.8fr_0.8fr_3rem]"
+    : "grid-cols-[3rem_1.4fr_1.1fr_0.9fr_3rem]";
+  const intervals = setIntervals(sets.map((s) => s.doneAt));
+  const fields = (
+    [
+      ["weight", "kg", "decimal"],
+      ["reps", "回", "numeric"],
+      ["rir", "RIR", "numeric"],
+    ] as const
+  ).filter(([key]) => showRir || key !== "rir");
   return (
     <div className="border-border overflow-hidden rounded-md border">
-      <div className="border-border text-muted grid grid-cols-[3rem_1.4fr_1fr_0.8fr_0.8fr_3rem] border-b text-xs">
-        {["SET", "前回", "kg", "回", "RIR", "✓"].map((h) => (
+      <div className={cn("border-border text-muted grid border-b text-xs", cols)}>
+        {["SET", "前回", "kg", "回", ...(showRir ? ["RIR"] : []), "✓"].map((h) => (
           <span key={h} className={cn(cell, "label-en py-2 text-center")}>
             {h}
           </span>
@@ -61,14 +78,15 @@ export function SetTable({
           <div key={s.id} className="border-border border-b last:border-b-0">
             <div
               className={cn(
-                "grid grid-cols-[3rem_1.4fr_1fr_0.8fr_0.8fr_3rem] items-center transition-shadow duration-500",
+                "grid items-center transition-shadow duration-500",
+                cols,
                 flashId === s.id && "shadow-[inset_0_0_0_2px_var(--color-accent)]",
               )}
             >
               <button
                 type="button"
-                onClick={() => onChange(i, { setType: nextSetType(s.setType) })}
-                aria-label={`セット${i + 1}（${type.label}）。タップで種別を変更`}
+                onClick={() => setPicking(i)}
+                aria-label={`セット${i + 1}（${type.label}）。タップで追い込み方を選ぶ`}
                 className={cn(cell, "num flex h-14 items-center justify-center gap-0.5 text-xl")}
               >
                 {i + 1}
@@ -79,19 +97,15 @@ export function SetTable({
               >
                 {prev ? `${fmt(prev.weight_kg)} × ${fmt(prev.reps)}` : "—"}
               </span>
-              {(
-                [
-                  ["weight", "kg", prev?.weight_kg, "decimal"],
-                  ["reps", "回", prev?.reps, "numeric"],
-                  ["rir", "RIR", prev?.rir, "numeric"],
-                ] as const
-              ).map(([key, label, ph, mode]) => (
+              {fields.map(([key, label, mode]) => (
                 <span key={key} className={cn(cell, "px-1 py-1.5")}>
                   <input
                     inputMode={mode}
                     aria-label={`セット${i + 1} ${label}`}
                     value={s[key]}
-                    placeholder={fmt(ph)}
+                    placeholder={fmt(
+                      key === "weight" ? prev?.weight_kg : key === "reps" ? prev?.reps : prev?.rir,
+                    )}
                     disabled={done}
                     onFocus={() => onFocusRow(i)}
                     onChange={(e) => onChange(i, { [key]: e.target.value })}
@@ -118,19 +132,55 @@ export function SetTable({
                 </button>
               </span>
             </div>
-            {diff && (
-              <p
-                className={cn(
-                  "num -mt-1 pb-1.5 pl-[3rem] text-xs",
-                  diff.trend === "up" ? "text-accent" : "text-ghost",
+            {(diff || intervals[i] !== null || type.short) && done && (
+              <p className="num -mt-1 flex flex-wrap gap-x-3 pb-1.5 pl-[3rem] text-xs">
+                {type.key !== "normal" && <span className="text-accent">{type.label}</span>}
+                {diff && (
+                  <span className={diff.trend === "up" ? "text-accent" : "text-ghost"}>
+                    前回比 {diff.label}
+                  </span>
                 )}
-              >
-                前回比 {diff.label}
+                {intervals[i] !== null && (
+                  <span className="text-ghost">前のセットから {formatRest(intervals[i]!)}</span>
+                )}
               </p>
             )}
           </div>
         );
       })}
+      {picking !== null && (
+        <Sheet title={`セット${picking + 1}の追い込み方`} onClose={() => setPicking(null)}>
+          <ul className="flex flex-col gap-2 overflow-y-auto pb-6">
+            {SET_TYPES.map((t) => {
+              const selected = sets[picking]?.setType === t.key;
+              return (
+                <li key={t.key}>
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onChange(picking, { setType: t.key as SetType });
+                      setPicking(null);
+                    }}
+                    className={cn(
+                      "flex min-h-14 w-full flex-col items-start rounded-md border px-3 py-2 text-left",
+                      selected ? "border-accent" : "border-border",
+                    )}
+                  >
+                    <span className="flex items-baseline gap-2">
+                      <span className={cn("text-base font-bold", selected && "text-accent")}>
+                        {t.label}
+                      </span>
+                      {t.short && <span className="num text-ghost text-xs">{t.short}</span>}
+                    </span>
+                    <span className="text-muted text-xs leading-relaxed">{t.note}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </Sheet>
+      )}
     </div>
   );
 }
