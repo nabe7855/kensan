@@ -91,6 +91,35 @@ export function phaseWeeks(totalWeeks: number): Partial<Record<PhaseKey, number>
   return { early, mid, late: Math.max(1, rest - early - mid), peak: 1 };
 }
 
+/** Weeks the user chose for early, mid and the peak week; late takes whatever is left. */
+export type PhaseSplit = { early: number; mid: number; peak: number };
+
+/**
+ * Week counts from a user's split, or null when it doesn't fit the prep
+ * (late needs at least one week). Phases set to 0 weeks are left out.
+ */
+export function customWeeks(
+  totalWeeks: number,
+  split: PhaseSplit,
+): Partial<Record<PhaseKey, number>> | null {
+  const w = Math.floor(totalWeeks);
+  const { early, mid, peak } = split;
+  if ([early, mid, peak].some((n) => !Number.isInteger(n) || n < 0)) return null;
+  const late = w - early - mid - peak;
+  if (late < 1) return null;
+  const weeks: Partial<Record<PhaseKey, number>> = { late };
+  if (early) weeks.early = early;
+  if (mid) weeks.mid = mid;
+  if (peak) weeks.peak = peak;
+  return weeks;
+}
+
+/** The default split as editable numbers. */
+export function defaultSplit(totalWeeks: number): PhaseSplit {
+  const w = phaseWeeks(totalWeeks);
+  return { early: w.early ?? 0, mid: w.mid ?? 0, peak: w.peak ?? 0 };
+}
+
 /** Maintenance from logged intake and the weight trend (kg/day slope); null without enough data. */
 export function estimateMaintenance(
   days: { date: string; kcal: number | null; weightKg: number | null }[],
@@ -117,11 +146,11 @@ export function estimateMaintenance(
 export const maintenanceFromWeight = (kg: number) => round50(kg * 31);
 
 /** Split the prep into early / mid / late / peak with a calorie and PFC guideline for each. */
-export function planPhases(input: PlanInput): Phase[] {
+export function planPhases(input: PlanInput, split?: PhaseSplit | null): Phase[] {
   const { startDate, contestDate, startKg, targetKg, maintenanceKcal } = input;
   const total = weeksBetween(startDate, contestDate);
   if (total <= 0) return [];
-  const weeks = phaseWeeks(total);
+  const weeks = (split && customWeeks(total, split)) ?? phaseWeeks(total);
   const loss = Math.max(0, startKg - targetKg);
   const keys = (["early", "mid", "late", "peak"] as const).filter((k) => weeks[k]);
   const share = keys.reduce(
