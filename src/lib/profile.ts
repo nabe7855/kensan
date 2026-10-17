@@ -12,7 +12,7 @@ export async function getCurrentProfile() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "display_name, height_cm, sex, unit_pref, onboarded_at, track_libido, meal_slots, show_rir, training_phase, plateau_alerts",
+      "display_name, height_cm, sex, unit_pref, onboarded_at, track_libido, meal_slots, show_rir, training_phase, plateau_alerts, muted_exercises",
     )
     .eq("user_id", user.id)
     .maybeSingle();

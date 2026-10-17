@@ -14,6 +14,7 @@ import {
   useExerciseNotes,
   useExercises,
 } from "@/lib/queries/training";
+import { plateauNote, repPRIndexes, sessionBests } from "@/lib/plateau";
 import { bestE1RM, signedDiff } from "@/lib/progress";
 import { bestByExercise, type SetType } from "@/lib/strength";
 import { useActiveWorkout } from "@/lib/useActiveWorkout";
@@ -31,6 +32,7 @@ import { ExerciseNote } from "./ExerciseNote";
 import { RestTimer } from "./RestTimer";
 import { RestPicker } from "@/components/rest/RestPicker";
 import { useRestTimer } from "@/components/providers/RestTimerProvider";
+import { PlateauCard } from "./PlateauCard";
 import { prevFor, SetTable } from "./SetTable";
 import { StepperBar } from "./StepperBar";
 
@@ -43,6 +45,7 @@ export type StoredSummary = {
   volumeKg: number;
   setCount: number;
   prs: { name: string; weightKg: number; reps: number }[];
+  repPrs?: { name: string; weightKg: number; reps: number }[];
   /** Working volume of the same exercises last time, for the comparison. */
   prevVolumeKg?: number;
 };
@@ -51,7 +54,7 @@ const num = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? nul
 
 export function WorkoutScreen() {
   const router = useRouter();
-  const { userId, showRir } = useAppData();
+  const { userId, showRir, trainingPhase, plateauAlerts, mutedExercises } = useAppData();
   const { write } = useSync();
   const { workout, loaded, update, clear } = useActiveWorkout();
   const { data: exercises = [] } = useExercises();
@@ -60,6 +63,30 @@ export function WorkoutScreen() {
   const history = useExerciseHistory(ids);
   const previous = useMemo(() => previousSetsByExercise(history.data ?? []), [history.data]);
   const names = useMemo(() => new Map(exercises.map((e) => [e.id, e.name_ja])), [exercises]);
+  const pastByExercise = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        workoutId: string;
+        setType: string;
+        weightKg: number | null;
+        reps: number | null;
+        doneAt: string | null;
+      }[]
+    >();
+    for (const h of history.data ?? []) {
+      const list = map.get(h.exercise_id) ?? [];
+      list.push({
+        workoutId: h.workout_id,
+        setType: h.set_type,
+        weightKg: h.weight_kg,
+        reps: h.reps,
+        doneAt: h.done_at,
+      });
+      map.set(h.exercise_id, list);
+    }
+    return map;
+  }, [history.data]);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [focusRow, setFocusRow] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
@@ -91,6 +118,21 @@ export function WorkoutScreen() {
           .map((x) => ({ weightKg: num(x.weight), reps: num(x.reps) })),
       )
     : null;
+  const repPrsFor = (ex: NonNullable<typeof current>) =>
+    repPRIndexes(
+      ex.sets.map((x) => ({
+        setType: x.setType,
+        weightKg: num(x.weight),
+        reps: num(x.reps),
+        done: !!x.doneAt,
+      })),
+      pastByExercise.get(ex.exerciseId) ?? [],
+    );
+  const currentRepPrs = current ? repPrsFor(current) : [];
+  const note =
+    current && plateauAlerts && !mutedExercises.includes(current.exerciseId)
+      ? plateauNote(sessionBests(pastByExercise.get(current.exerciseId) ?? []), trainingPhase)
+      : null;
   const firstOpen = current ? current.sets.findIndex((s) => !s.doneAt) : -1;
   const activeIndex =
     focusRow !== null && current?.sets[focusRow] && !current.sets[focusRow]!.doneAt
@@ -190,6 +232,24 @@ export function WorkoutScreen() {
         weightKg: p.weightKg,
         reps: p.reps,
       })),
+      repPrs: workout.exercises.flatMap((ex) =>
+        repPrsFor(ex)
+          .map((i) => ex.sets[i]!)
+          .map((s) => ({
+            name: names.get(ex.exerciseId) ?? "",
+            weightKg: num(s.weight)!,
+            reps: num(s.reps)!,
+          }))
+          .filter(
+            (r) =>
+              !summary.prs.some(
+                (p) =>
+                  names.get(p.exerciseId) === r.name &&
+                  p.weightKg === r.weightKg &&
+                  p.reps === r.reps,
+              ),
+          ),
+      ),
     };
     await kvSet(SUMMARY_KEY, stored);
     await write({ table: "workouts", kind: "upsert", payload: rows.workout });
@@ -269,6 +329,11 @@ export function WorkoutScreen() {
                 )}
               </p>
             )}
+            {note && (
+              <div className="mt-2">
+                <PlateauCard key={current.exerciseId} note={note} exerciseId={current.exerciseId} />
+              </div>
+            )}
             <ExerciseNote
               key={current.exerciseId}
               exerciseId={current.exerciseId}
@@ -285,6 +350,7 @@ export function WorkoutScreen() {
             onToggle={toggle}
             onFocusRow={setFocusRow}
             showRir={showRir}
+            repPrs={currentRepPrs}
           />
 
           <div className="flex gap-2">
