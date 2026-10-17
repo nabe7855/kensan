@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           showRir: profile.show_rir,
           trainingPhase: profile.training_phase as TrainingPhase,
           plateauAlerts: profile.plateau_alerts,
+          mutedExercises: profile.muted_exercises,
           prep: prep ?? null,
         }}
       >

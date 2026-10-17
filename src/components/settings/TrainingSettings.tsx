@@ -56,7 +56,8 @@ function Toggle({
 /** Training preferences saved straight to the profile. */
 export function TrainingSettings() {
   const router = useRouter();
-  const { userId, showRir, trainingPhase, plateauAlerts } = useAppData();
+  const { userId, showRir, trainingPhase, plateauAlerts, mutedExercises } = useAppData();
+  const [muted, setMuted] = useState(mutedExercises.length);
   const { write } = useSync();
   const [state, setState] = useState({ showRir, trainingPhase, plateauAlerts });
 
@@ -108,6 +109,29 @@ export function TrainingSettings() {
         checked={state.plateauAlerts}
         onChange={(v) => void save({ plateauAlerts: v })}
       />
+      {state.plateauAlerts && muted > 0 && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <span className="text-muted text-xs">
+            知らせない種目 <span className="num">{muted}</span> 件
+          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              setMuted(0);
+              await write({
+                table: "profiles",
+                kind: "update",
+                match: { user_id: userId },
+                payload: { muted_exercises: [] },
+              });
+              router.refresh();
+            }}
+            className="text-muted h-10 text-xs underline underline-offset-4"
+          >
+            すべて知らせるに戻す
+          </button>
+        </div>
+      )}
       <Toggle
         label="RIR（余力）を記録する"
         note="毎セット限界まで追い込むなら不要。オンにするとセット表に列が出る"

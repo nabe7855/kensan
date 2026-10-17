@@ -19,6 +19,7 @@ type Props = {
   onToggle: (index: number) => void;
   onFocusRow: (index: number) => void;
   showRir?: boolean;
+  repPrs?: number[];
 };
 
 const fmt = (n: number | null | undefined) => (n == null ? "" : String(n));
@@ -40,6 +41,7 @@ export function SetTable({
   onToggle,
   onFocusRow,
   showRir = false,
+  repPrs = [],
 }: Props) {
   const [picking, setPicking] = useState<number | null>(null);
   const cols = showRir
@@ -132,8 +134,9 @@ export function SetTable({
                 </button>
               </span>
             </div>
-            {(diff || intervals[i] !== null || type.short) && done && (
+            {(diff || intervals[i] !== null || type.short || repPrs.includes(i)) && done && (
               <p className="num -mt-1 flex flex-wrap gap-x-3 pb-1.5 pl-[3rem] text-xs">
+                {repPrs.includes(i) && <span className="text-accent font-bold">レップPR</span>}
                 {type.key !== "normal" && <span className="text-accent">{type.label}</span>}
                 {diff && (
                   <span className={diff.trend === "up" ? "text-accent" : "text-ghost"}>

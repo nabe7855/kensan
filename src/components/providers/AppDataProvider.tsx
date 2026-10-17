@@ -23,6 +23,7 @@ export type AppData = {
   showRir: boolean;
   trainingPhase: TrainingPhase;
   plateauAlerts: boolean;
+  mutedExercises: string[];
   prep: ActivePrep | null;
 };
 

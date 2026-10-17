@@ -128,6 +128,23 @@ export function SummaryScreen() {
         </section>
       )}
 
+      {(summary.repPrs?.length ?? 0) > 0 && (
+        <section className="surface px-4 py-3">
+          <h2 className="border-border border-b pb-2 text-base font-bold">レップPR</h2>
+          <p className="text-ghost pt-2 text-xs">同じ重さ以上で、これまでで一番多い回数</p>
+          <ul>
+            {summary.repPrs!.map((p) => (
+              <li
+                key={`${p.name}-${p.weightKg}`}
+                className="border-border num border-b py-2.5 text-lg last:border-b-0"
+              >
+                {p.name} {p.weightKg}kg × <span className="text-accent">{p.reps}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-bold">今日の感触</h2>
         {FIELDS.map((f) => (
