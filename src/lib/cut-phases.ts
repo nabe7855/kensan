@@ -163,6 +163,24 @@ export function isPhaseDates(x: unknown): x is PhaseDates {
   );
 }
 
+/**
+ * How a split is stored in preps.phase_split. Dates go under "dates": the column's check reads
+ * top-level "early" / "mid" / "peak" as week numbers, so a date there would be rejected.
+ */
+export function encodeSplit(split: PhaseSplit | PhaseDates | null): Record<string, unknown> | null {
+  if (!split) return null;
+  return isPhaseDates(split) ? { dates: split } : split;
+}
+
+export function decodeSplit(stored: unknown): PhaseSplit | PhaseDates | null {
+  if (!stored || typeof stored !== "object") return null;
+  const s = stored as Record<string, unknown>;
+  if (isPhaseDates(s.dates)) return s.dates;
+  if (isPhaseDates(s)) return s;
+  if (["early", "mid", "peak"].every((k) => Number.isInteger(s[k]))) return s as PhaseSplit;
+  return null;
+}
+
 const dayDiff = (a: string, b: string) =>
   Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 

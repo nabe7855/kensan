@@ -4,7 +4,10 @@ import { localDb, type OutboxOp } from "./db";
 export const OUTBOX_CHANGED = "kensan:outbox-changed";
 const MAX_ATTEMPTS = 5;
 
-type Result = { error: { message: string; code?: string } | null; status?: number };
+type Result = {
+  error: { message: string; code?: string; details?: string | null; hint?: string | null } | null;
+  status?: number;
+};
 
 function isTransient(result: Result): boolean {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
@@ -56,9 +59,11 @@ async function flushOnce(client: SupabaseClient): Promise<number> {
       continue;
     }
     if (isTransient(result)) break;
+    const { code, message, details } = result.error;
     await localDb().outbox.update(op.id!, {
       attempts: op.attempts + 1,
-      lastError: result.error.message,
+      // Keep the code and details: they are what tells a stuck write apart.
+      lastError: [code && `[${code}]`, message, details].filter(Boolean).join(" "),
     });
   }
   return sent;
@@ -97,6 +102,24 @@ export async function enqueue(
   await localDb().outbox.add({ ...op, createdAt: Date.now(), attempts: 0 });
   notify();
   await flushOutbox(client);
+}
+
+/** Give every queued write a fresh set of attempts and send again. */
+export async function retryAll(client: SupabaseClient): Promise<number> {
+  await localDb()
+    .outbox.toCollection()
+    .modify((op) => {
+      op.attempts = 0;
+      delete op.lastError;
+    });
+  notify();
+  return flushOutbox(client);
+}
+
+/** Drop one queued write for good (it will never reach the server). */
+export async function discardOp(id: number): Promise<void> {
+  await localDb().outbox.delete(id);
+  notify();
 }
 
 export async function pendingOps(): Promise<OutboxOp[]> {
