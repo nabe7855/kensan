@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      contest_checks: {
+        Row: {
+          contest_id: string
+          created_at: string
+          on_date: string
+          task_key: string
+          user_id: string
+        }
+        Insert: {
+          contest_id: string
+          created_at?: string
+          on_date: string
+          task_key: string
+          user_id?: string
+        }
+        Update: {
+          contest_id?: string
+          created_at?: string
+          on_date?: string
+          task_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contest_checks_contest_id_user_id_fkey"
+            columns: ["contest_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "contests"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      contest_routines: {
+        Row: {
+          created_at: string
+          daily: boolean
+          days_before: number
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily?: boolean
+          days_before: number
+          id?: string
+          title: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          daily?: boolean
+          days_before?: number
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contests: {
+        Row: {
+          category: string | null
+          created_at: string
+          date: string
+          id: string
+          location: string | null
+          name: string
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          location?: string | null
+          name: string
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string | null
+          name?: string
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           bowel: string | null
