@@ -108,3 +108,46 @@ export function fillReason(remaining: Macros, s: FillSuggestion): string {
   const r = (n: number) => Math.round(n);
   return `残り P${r(remaining.protein_g)}・F${r(remaining.fat_g)}・C${r(remaining.carb_g)}g に対し、P優先で最も近い組合せ。食べた後の残り P${r(s.after.protein_g)}・F${r(s.after.fat_g)}・C${r(s.after.carb_g)}g`;
 }
+
+/** Meals still to come today: the planned daily count minus meals that already have food. */
+export function mealsLeft(mealsPerDay: number, mealsWithFood: number): number {
+  return Math.max(1, mealsPerDay - mealsWithFood);
+}
+
+/** What one of the remaining meals should roughly provide (never negative). */
+export function perMealTarget(remaining: Macros, meals: number): Macros {
+  const n = Math.max(1, meals);
+  const share = (v: number) => Math.max(0, v / n);
+  return {
+    kcal: share(remaining.kcal),
+    protein_g: share(remaining.protein_g),
+    fat_g: share(remaining.fat_g),
+    carb_g: share(remaining.carb_g),
+  };
+}
+
+export type SetFit<T> = { set: T; provides: Macros; error: number };
+
+/** Saved sets ranked by how close they come to one meal's target (P first, then C, F). */
+export function rankSets<T extends { items: { food: Macros; grams: number }[] }>(
+  perMeal: Macros,
+  sets: T[],
+  limit = 2,
+): SetFit<T>[] {
+  return sets
+    .filter((s) => s.items.length > 0)
+    .map((set) => {
+      const provides = sumMacros(set.items.map((i) => macrosFor(i.food, i.grams)));
+      return { set, provides, error: fillError(perMeal, provides) };
+    })
+    .sort((a, b) => a.error - b.error)
+    .slice(0, limit);
+}
+
+/** One-line reason for the per-meal suggestion. */
+export function perMealReason(remaining: Macros, meals: number): string {
+  const r = (n: number) => Math.max(0, Math.round(n));
+  return meals > 1
+    ? `残り P${r(remaining.protein_g)}・F${r(remaining.fat_g)}・C${r(remaining.carb_g)}g を ${meals} 食で分けた 1 食分に、P を優先して近いもの`
+    : `残り P${r(remaining.protein_g)}・F${r(remaining.fat_g)}・C${r(remaining.carb_g)}g に、P を優先して近いもの`;
+}

@@ -153,3 +153,45 @@ describe("carbsFromTarget / energySplit", () => {
     expect(s.p).toBeCloseTo(800 / 2250, 3);
   });
 });
+
+describe("per-meal suggestions", () => {
+  it("splits what is left across the meals still to come", async () => {
+    const { mealsLeft, perMealTarget } = await import("@/lib/fill");
+    expect(mealsLeft(3, 1)).toBe(2);
+    expect(mealsLeft(3, 5)).toBe(1);
+    const per = perMealTarget({ kcal: 1200, protein_g: 120, fat_g: 30, carb_g: 150 }, 3);
+    expect(per).toEqual({ kcal: 400, protein_g: 40, fat_g: 10, carb_g: 50 });
+    expect(perMealTarget({ kcal: -100, protein_g: 10, fat_g: -5, carb_g: 0 }, 2).fat_g).toBe(0);
+  });
+
+  it("ranks saved sets by fit to one meal", async () => {
+    const { rankSets } = await import("@/lib/fill");
+    const per = { kcal: 500, protein_g: 40, fat_g: 10, carb_g: 60 };
+    const sets = [
+      {
+        id: "big",
+        items: [
+          { food: rice, grams: 400 },
+          { food: chicken, grams: 300 },
+        ],
+      },
+      {
+        id: "fit",
+        items: [
+          { food: rice, grams: 160 },
+          { food: chicken, grams: 150 },
+        ],
+      },
+      { id: "empty", items: [] },
+    ];
+    const ranked = rankSets(per, sets);
+    expect(ranked.map((r) => r.set.id)).toEqual(["fit", "big"]);
+  });
+
+  it("explains the split in one line", async () => {
+    const { perMealReason } = await import("@/lib/fill");
+    expect(perMealReason({ kcal: 1200, protein_g: 120, fat_g: 30, carb_g: 150 }, 3)).toMatch(
+      /3 食で分けた/,
+    );
+  });
+});
