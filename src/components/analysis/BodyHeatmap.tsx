@@ -61,6 +61,8 @@ function Figure({
         return (
           <g
             key={i}
+            className={n > 0 ? "animate-fade-in" : undefined}
+            style={n > 0 ? { animationDelay: `${150 + i * 50}ms` } : undefined}
             fill={n > 0 ? COLORS.accent : COLORS.border}
             fillOpacity={n > 0 ? 0.2 + 0.8 * t : 1}
           >

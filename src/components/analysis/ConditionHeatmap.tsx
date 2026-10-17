@@ -29,14 +29,15 @@ export function ConditionHeatmap({ rows }: { rows: HeatRow[] }) {
             {Number(d.slice(8))}
           </span>
         ))}
-        {rows.map((r) => (
+        {rows.map((r, ri) => (
           <div key={r.key} className="contents">
             <span className="text-sm">{r.label}</span>
-            {r.cells.map((c) => (
+            {r.cells.map((c, ci) => (
               <span
                 key={c.date}
                 title={`${c.date} ${r.label} ${c.value ?? "—"}（${LEVEL_LABEL[c.level]}）`}
-                className={cn("h-8 rounded-sm", LEVEL[c.level])}
+                className={cn("animate-fade-in h-8 rounded-sm", LEVEL[c.level])}
+                style={{ animationDelay: `${ri * 60 + ci * 30}ms` }}
               />
             ))}
           </div>

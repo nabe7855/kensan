@@ -9,14 +9,23 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useEffect, useState } from "react";
 import type { GoalPoint } from "@/lib/prep";
 import { COLORS } from "@/lib/tokens";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 type Props = { points: GoalPoint[]; startKg: number; targetKg: number };
 
 const MAX_DOTS = 9;
 
 export function GoalLineChart({ points, startKg, targetKg }: Props) {
+  const reduced = useReducedMotion();
+  // Draw in once when the chart appears; later slider changes update without animating.
+  const [drawIn, setDrawIn] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setDrawIn(false), 1200);
+    return () => clearTimeout(t);
+  }, []);
   const every = Math.max(1, Math.ceil(points.length / MAX_DOTS));
   const last = points.length - 1;
   const data = points.map((p, i) => ({ ...p, dot: i % every === 0 || i === last }));
@@ -39,14 +48,14 @@ export function GoalLineChart({ points, startKg, targetKg }: Props) {
             stroke="none"
             fill={COLORS.accent}
             fillOpacity={0.08}
-            isAnimationActive={false}
+            isAnimationActive={drawIn && !reduced}
           />
           <Line
             type="linear"
             dataKey="weightKg"
             stroke={COLORS.accent}
             strokeWidth={2}
-            isAnimationActive={false}
+            isAnimationActive={drawIn && !reduced}
             dot={(props: {
               cx?: number;
               cy?: number;
