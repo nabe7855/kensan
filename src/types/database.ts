@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       daily_checkins: {
@@ -546,9 +521,13 @@ export type Database = {
           display_name: string | null
           height_cm: number | null
           meal_slots: string[]
+          muted_exercises: string[]
           onboarded_at: string | null
+          plateau_alerts: boolean
           sex: string | null
+          show_rir: boolean
           track_libido: boolean
+          training_phase: string
           unit_pref: string
           updated_at: string
           user_id: string
@@ -558,9 +537,13 @@ export type Database = {
           display_name?: string | null
           height_cm?: number | null
           meal_slots?: string[]
+          muted_exercises?: string[]
           onboarded_at?: string | null
+          plateau_alerts?: boolean
           sex?: string | null
+          show_rir?: boolean
           track_libido?: boolean
+          training_phase?: string
           unit_pref?: string
           updated_at?: string
           user_id?: string
@@ -570,9 +553,13 @@ export type Database = {
           display_name?: string | null
           height_cm?: number | null
           meal_slots?: string[]
+          muted_exercises?: string[]
           onboarded_at?: string | null
+          plateau_alerts?: boolean
           sex?: string | null
+          show_rir?: boolean
           track_libido?: boolean
+          training_phase?: string
           unit_pref?: string
           updated_at?: string
           user_id?: string
@@ -986,9 +973,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
