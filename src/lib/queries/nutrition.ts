@@ -220,3 +220,21 @@ export function useDailyIntake(from: string, to: string) {
     },
   });
 }
+
+export const fridgeKey = ["fridge"] as const;
+
+/** Foods the user has at home (have / don't have). */
+export function useFridge() {
+  return useQuery({
+    queryKey: fridgeKey,
+    queryFn: async (): Promise<Food[]> => {
+      const rows = await unwrap<{ foods: Food | null }[]>(
+        getSupabase()
+          .from("fridge_items")
+          .select(`foods(${FOOD_COLUMNS})`)
+          .order("created_at", { ascending: false }),
+      );
+      return rows.map((r) => r.foods).filter((f): f is Food => !!f);
+    },
+  });
+}
