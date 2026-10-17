@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
 import { KeyboardWatcher } from "@/components/shell/KeyboardWatcher";
 import { StatusStrip } from "@/components/shell/StatusStrip";
+import type { PhaseSplit } from "@/lib/cut-phases";
 import { getCurrentProfile } from "@/lib/profile";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: prep } = await supabase
     .from("preps")
     .select(
-      "id, contest_name, contest_date, start_date, start_weight_kg, target_weight_kg, weekly_rate_pct, why_text",
+      "id, contest_name, contest_date, start_date, start_weight_kg, target_weight_kg, weekly_rate_pct, why_text, phase_split",
     )
     .eq("is_active", true)
     .maybeSingle();
@@ -34,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           trainingPhase: profile.training_phase as TrainingPhase,
           plateauAlerts: profile.plateau_alerts,
           mutedExercises: profile.muted_exercises,
-          prep: prep ?? null,
+          prep: prep ? { ...prep, phase_split: prep.phase_split as PhaseSplit | null } : null,
         }}
       >
         <SyncProvider>

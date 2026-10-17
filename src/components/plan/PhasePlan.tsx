@@ -1,11 +1,24 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMealActions } from "@/components/nutrition/useMealActions";
+import { useAppData } from "@/components/providers/AppDataProvider";
+import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
-import { daysLeftInPhase, phaseOn, type Phase } from "@/lib/cut-phases";
-import { daysUntilContest } from "@/lib/prep";
+import {
+  customWeeks,
+  daysLeftInPhase,
+  defaultSplit,
+  phaseOn,
+  type Phase,
+  type PhaseSplit,
+} from "@/lib/cut-phases";
+import type { Target } from "@/lib/nutrition";
+import { daysUntilContest, weeksBetween } from "@/lib/prep";
+import { nutritionKeys, useTargets } from "@/lib/queries/nutrition";
 import { cn } from "@/lib/utils";
 import { usePhasePlan } from "./usePhasePlan";
 
@@ -137,9 +150,81 @@ function PhaseCard({ p, current, today }: { p: Phase; current: boolean; today: s
   );
 }
 
+const LENGTH_ROWS = [
+  { key: "early", label: "初期" },
+  { key: "mid", label: "中期" },
+  { key: "late", label: "後期" },
+  { key: "peak", label: "最終調整" },
+] as const;
+
+/** Weeks per phase; late is whatever is left so the total always matches the prep. */
+function LengthEditor({
+  total,
+  value,
+  onChange,
+}: {
+  total: number;
+  value: PhaseSplit;
+  onChange: (v: PhaseSplit) => void;
+}) {
+  const late = total - value.early - value.mid - value.peak;
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {LENGTH_ROWS.map((row) => {
+        const n = row.key === "late" ? late : value[row.key];
+        const max = row.key === "peak" ? 8 : total;
+        return (
+          <li key={row.key} className="flex min-h-12 items-center justify-between gap-2">
+            <span className="text-sm">{row.label}</span>
+            {row.key === "late" ? (
+              <span className="text-muted text-sm">
+                <span className="num text-fg text-lg">{n}</span> 週（残り）
+              </span>
+            ) : (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label={`${row.label}を 1 週減らす`}
+                  disabled={n <= 0}
+                  onClick={() => onChange({ ...value, [row.key]: n - 1 })}
+                  className="border-border size-12 rounded-md border text-lg disabled:opacity-30"
+                >
+                  −
+                </button>
+                <span className="w-14 text-center">
+                  <span className="num text-lg">{n}</span>
+                  <span className="text-muted text-xs"> 週</span>
+                </span>
+                <button
+                  type="button"
+                  aria-label={`${row.label}を 1 週増やす`}
+                  disabled={late <= 1 || n >= max}
+                  onClick={() => onChange({ ...value, [row.key]: n + 1 })}
+                  className="border-border size-12 rounded-md border text-lg disabled:opacity-30"
+                >
+                  ＋
+                </button>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** Early / mid / late / peak guideline for the active prep, with an option to schedule it as targets. */
 export function PhasePlan() {
-  const { prep, today, phases, maintenance, source, estimated, setMaintenance } = usePhasePlan();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { userId } = useAppData();
+  const { write } = useSync();
+  const targets = useTargets();
+  // undefined: use the saved split. A value: preview while editing, or what was just saved.
+  const [draft, setDraft] = useState<PhaseSplit | null | undefined>(undefined);
+  const [editing, setEditing] = useState(false);
+  const { prep, today, phases, maintenance, source, estimated, setMaintenance } =
+    usePhasePlan(draft);
   const actions = useMealActions(today);
   const [confirming, setConfirming] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -162,7 +247,47 @@ export function PhasePlan() {
   const upcoming = phases.filter((p) => p.end >= today);
   const left = daysUntilContest(prep.contest_date, today);
 
+  const totalWeeks = Math.floor(weeksBetween(prep.start_date, prep.contest_date));
+  const saved = prep.phase_split ?? null;
+  const shownSplit = draft !== undefined ? draft : saved;
+  const editValue =
+    shownSplit && customWeeks(totalWeeks, shownSplit) ? shownSplit : defaultSplit(totalWeeks);
+
+  async function saveSplit(value: PhaseSplit | null) {
+    setDraft(value);
+    setEditing(false);
+    setApplied(false);
+    await write({
+      table: "preps",
+      kind: "update",
+      match: { id: prep!.id, user_id: userId },
+      payload: { phase_split: value },
+    });
+    router.refresh();
+  }
+
   async function apply() {
+    // Targets scheduled after today belong to the old phase dates; replace them.
+    const newDates = new Set(upcoming.map((p) => (p.start > today ? p.start : today)));
+    const stale = [
+      ...new Set(
+        (targets.data ?? [])
+          .map((t) => t.effective_from)
+          .filter((d) => d > today && !newDates.has(d)),
+      ),
+    ];
+    if (stale.length) {
+      queryClient.setQueryData<Target[]>(nutritionKeys.targets, (list = []) =>
+        list.filter((t) => !stale.includes(t.effective_from)),
+      );
+      for (const d of stale) {
+        await write({
+          table: "nutrition_targets",
+          kind: "delete",
+          match: { user_id: userId, effective_from: d },
+        });
+      }
+    }
     for (const p of upcoming) {
       const from = p.start > today ? p.start : today;
       const row = { kcal: p.kcal, protein_g: p.protein_g, fat_g: p.fat_g, carb_g: p.carb_g };
@@ -199,6 +324,48 @@ export function PhasePlan() {
       </div>
 
       {phases.length > 0 && <Timeline phases={phases} today={today} />}
+
+      {totalWeeks >= 2 &&
+        (editing ? (
+          <section className="surface flex flex-col gap-3 px-4 py-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-base font-bold">期間を調整</h2>
+              <span className="text-muted text-xs">
+                全 <span className="num">{totalWeeks}</span> 週
+              </span>
+            </div>
+            <LengthEditor total={totalWeeks} value={editValue} onChange={setDraft} />
+            <p className="text-ghost text-xs leading-relaxed">
+              変えると下の日付とカロリーがすぐ変わります。後期は残りの週数になり、最低 1 週です
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDraft(undefined);
+                  setEditing(false);
+                }}
+              >
+                やめる
+              </Button>
+              <Button variant="secondary" onClick={() => void saveSplit(null)}>
+                既定に戻す
+              </Button>
+              <Button onClick={() => void saveSplit(editValue)}>保存</Button>
+            </div>
+          </section>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(editValue);
+              setEditing(true);
+            }}
+            className="text-accent -mt-2 h-10 self-start text-sm underline underline-offset-4"
+          >
+            {shownSplit ? "期間を調整（自分で設定中）" : "期間を調整"}
+          </button>
+        ))}
 
       {maintenance !== null && (
         <section className="surface flex flex-col gap-2 px-4 py-3">
@@ -249,7 +416,7 @@ export function PhasePlan() {
           <section className="surface flex flex-col gap-3 px-4 py-3">
             <p className="text-sm leading-relaxed">
               今日から各フェーズの開始日に、目標カロリーと PFC
-              が自動で切り替わるように登録します。トレ日とオフ日は同じ値になるので、必要なら食事画面の「目標を変更」で調整してください。
+              が自動で切り替わるように登録します。明日以降の日付で登録済みの目標は、この内容に置き換わります。トレ日とオフ日は同じ値になるので、必要なら食事画面の「目標を変更」で調整してください。
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="ghost" onClick={() => setConfirming(false)}>

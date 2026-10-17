@@ -96,3 +96,43 @@ describe("maintenance", () => {
     expect(maintenanceFromWeight(80)).toBe(2500);
   });
 });
+
+describe("custom phase split", () => {
+  it("uses the chosen weeks and gives late the rest", async () => {
+    const { customWeeks, defaultSplit, planPhases } = await import("@/lib/cut-phases");
+    expect(customWeeks(20, { early: 4, mid: 8, peak: 2 })).toEqual({
+      early: 4,
+      mid: 8,
+      late: 6,
+      peak: 2,
+    });
+    expect(defaultSplit(20)).toEqual({ early: 7, mid: 7, peak: 1 });
+    const phases = planPhases(input, { early: 4, mid: 8, peak: 2 });
+    expect(phases.map((p) => [p.key, p.weeks])).toEqual([
+      ["early", 4],
+      ["mid", 8],
+      ["late", 6],
+      ["peak", 2],
+    ]);
+    expect(phases[1]!.start).toBe("2026-06-29");
+    expect(phases.at(-1)!.end).toBe("2026-10-18");
+    expect(phases.at(-1)!.endKg).toBeCloseTo(70, 5);
+  });
+
+  it("drops phases set to zero weeks", async () => {
+    const { planPhases } = await import("@/lib/cut-phases");
+    expect(planPhases(input, { early: 0, mid: 10, peak: 0 }).map((p) => p.key)).toEqual([
+      "mid",
+      "late",
+    ]);
+  });
+
+  it("falls back to the default when the split doesn't fit", async () => {
+    const { customWeeks, planPhases } = await import("@/lib/cut-phases");
+    expect(customWeeks(20, { early: 10, mid: 9, peak: 1 })).toBeNull();
+    expect(customWeeks(20, { early: -1, mid: 9, peak: 1 })).toBeNull();
+    expect(planPhases(input, { early: 15, mid: 9, peak: 1 }).map((p) => p.weeks)).toEqual([
+      7, 7, 5, 1,
+    ]);
+  });
+});

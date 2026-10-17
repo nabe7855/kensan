@@ -640,6 +640,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          phase_split: Json | null
           reverse_plan: Json | null
           start_date: string
           start_weight_kg: number
@@ -655,6 +656,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          phase_split?: Json | null
           reverse_plan?: Json | null
           start_date?: string
           start_weight_kg: number
@@ -670,6 +672,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          phase_split?: Json | null
           reverse_plan?: Json | null
           start_date?: string
           start_weight_kg?: number
