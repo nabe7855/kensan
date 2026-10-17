@@ -1,5 +1,6 @@
 import { isOver, ZERO, type Macros } from "@/lib/nutrition";
 import { cn } from "@/lib/utils";
+import { perKg } from "@/lib/weekly-sets";
 
 const KEYS = [
   { key: "kcal", label: "kcal", unit: "" },
@@ -16,10 +17,13 @@ export function MacroCards({
   eaten,
   planned = ZERO,
   target,
+  bodyKg = null,
 }: {
   eaten: Macros;
   planned?: Macros;
   target: Macros | null;
+  /** Shows protein per kg of body weight on the P card. */
+  bodyKg?: number | null;
 }) {
   return (
     <div className="grid grid-cols-4 gap-1.5">
@@ -56,6 +60,12 @@ export function MacroCards({
                 />
               )}
             </span>
+            {key === "protein_g" && perKg(eaten[key], bodyKg) !== null && (
+              <span className="num text-muted mt-1 text-[10px] whitespace-nowrap">
+                {perKg(eaten[key], bodyKg)}
+                {t !== null && `/${perKg(t, bodyKg)}`}g/kg
+              </span>
+            )}
           </div>
         );
       })}

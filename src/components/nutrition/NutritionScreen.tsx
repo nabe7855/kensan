@@ -18,6 +18,7 @@ import {
   useTemplates,
   type LogItem,
 } from "@/lib/queries/nutrition";
+import { useBodyWeight } from "@/lib/queries/checkins";
 import { useTrainedOn } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
 import { FoodSheet } from "./FoodSheet";
@@ -67,6 +68,7 @@ export function NutritionScreen() {
   const override = useDayOverride(date);
   const trained = useTrainedOn(date);
   const frequent = useFrequentFoods();
+  const bodyKg = useBodyWeight(date);
   const actions = useMealActions(date);
 
   const dayType: DayType = dayTypeFor(trained, override.data ?? null);
@@ -118,10 +120,11 @@ export function NutritionScreen() {
         eaten={eaten.protein_g}
         planned={planned.protein_g}
         target={target?.protein_g ?? null}
+        bodyKg={bodyKg}
       />
       <div className="flex items-start gap-2">
         <div className="flex-1">
-          <MacroCards eaten={eaten} planned={planned} target={target} />
+          <MacroCards eaten={eaten} planned={planned} target={target} bodyKg={bodyKg} />
         </div>
       </div>
       <button

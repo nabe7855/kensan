@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getSupabase } from "@/lib/supabase/client";
+import { weightTrend } from "@/lib/trend";
 
 export type CheckinRow = {
   date: string;
@@ -38,4 +39,15 @@ export function useCheckins(from: string, to: string) {
       return data;
     },
   });
+}
+
+/** Body weight for per-kg numbers: the 7-day average up to the date (null without records). */
+export function useBodyWeight(date: string): number | null {
+  const from = new Date(`${date}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - 20);
+  const { data } = useCheckins(from.toISOString().slice(0, 10), date);
+  const entries = (data ?? [])
+    .filter((c) => c.weight_kg != null)
+    .map((c) => ({ date: c.date, weightKg: c.weight_kg! }));
+  return weightTrend(entries).at(-1)?.trendKg ?? null;
 }
