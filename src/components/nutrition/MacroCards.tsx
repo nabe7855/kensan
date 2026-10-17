@@ -50,7 +50,10 @@ export function MacroCards({
             </span>
             <span className="bg-border relative mt-2 h-1.5 overflow-hidden rounded-full">
               <span
-                className={cn("absolute inset-y-0 left-0", over ? "bg-warn" : "bg-accent")}
+                className={cn(
+                  "animate-grow-x absolute inset-y-0 left-0 origin-left",
+                  over ? "bg-warn" : "bg-accent",
+                )}
                 style={{ width: `${eatenRatio * 100}%` }}
               />
               {plannedRatio > 0 && (
