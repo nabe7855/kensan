@@ -324,6 +324,32 @@ export type Database = {
         }
         Relationships: []
       }
+      fridge_items: {
+        Row: {
+          created_at: string
+          food_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          food_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          food_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fridge_items_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_log_items: {
         Row: {
           created_at: string
