@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { AppDataProvider } from "@/components/providers/AppDataProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { RestTimerProvider } from "@/components/providers/RestTimerProvider";
 import { SyncProvider } from "@/components/providers/SyncProvider";
+import { GlobalRestBar } from "@/components/rest/GlobalRestBar";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
 import { getCurrentProfile } from "@/lib/profile";
@@ -30,11 +32,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }}
       >
         <SyncProvider>
-          <AppHeader />
-          <main className="mx-auto w-full max-w-[480px] px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]">
-            {children}
-          </main>
-          <BottomTabBar />
+          <RestTimerProvider>
+            <AppHeader />
+            <main className="mx-auto w-full max-w-[480px] px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]">
+              {children}
+              <GlobalRestBar />
+            </main>
+            <BottomTabBar />
+          </RestTimerProvider>
         </SyncProvider>
       </AppDataProvider>
     </QueryProvider>

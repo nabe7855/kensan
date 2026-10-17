@@ -7,6 +7,8 @@ import { useSync } from "@/components/providers/SyncProvider";
 import { ScaleRow } from "@/components/condition/ScaleRow";
 import { Button } from "@/components/ui/button";
 import { kvDelete, kvGet } from "@/lib/offline/db";
+import { percentDiff } from "@/lib/progress";
+import { cn } from "@/lib/utils";
 import { SUMMARY_KEY, type StoredSummary } from "./WorkoutScreen";
 
 const FEEL = [
@@ -25,12 +27,29 @@ const FIELDS = [
 
 type FeelKey = (typeof FIELDS)[number]["key"];
 
-function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Stat({
+  label,
+  value,
+  unit,
+  note,
+  noteUp,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  note?: string | null;
+  noteUp?: boolean;
+}) {
   return (
     <div className="surface flex flex-col px-3 py-3">
       <span className="text-muted text-xs">{label}</span>
       <span className="num text-accent mt-1 text-4xl leading-none">{value}</span>
       {unit && <span className="num text-muted text-xs">{unit}</span>}
+      {note && (
+        <span className={cn("num mt-1 text-xs", noteUp ? "text-accent" : "text-ghost")}>
+          {note}
+        </span>
+      )}
     </div>
   );
 }
@@ -78,7 +97,17 @@ export function SummaryScreen() {
       </div>
 
       <div className="grid grid-cols-[1.3fr_1fr_1fr] gap-2">
-        <Stat label="総ボリューム" value={summary.volumeKg.toLocaleString("ja-JP")} unit="kg" />
+        <Stat
+          label="総ボリューム"
+          value={summary.volumeKg.toLocaleString("ja-JP")}
+          unit="kg"
+          note={
+            summary.prevVolumeKg
+              ? `前回比 ${percentDiff(summary.volumeKg, summary.prevVolumeKg)}`
+              : null
+          }
+          noteUp={!!summary.prevVolumeKg && summary.volumeKg > summary.prevVolumeKg}
+        />
         <Stat label="セット" value={String(summary.setCount)} />
         <Stat label="PR" value={String(summary.prs.length)} />
       </div>
