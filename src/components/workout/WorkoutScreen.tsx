@@ -14,6 +14,7 @@ import {
   useExerciseNotes,
   useExercises,
 } from "@/lib/queries/training";
+import { bestE1RM, signedDiff } from "@/lib/progress";
 import { bestByExercise, type SetType } from "@/lib/strength";
 import { useActiveWorkout } from "@/lib/useActiveWorkout";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,8 @@ export type StoredSummary = {
   volumeKg: number;
   setCount: number;
   prs: { name: string; weightKg: number; reps: number }[];
+  /** Working volume of the same exercises last time, for the comparison. */
+  prevVolumeKg?: number;
 };
 
 const num = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));
@@ -74,6 +77,18 @@ export function WorkoutScreen() {
 
   const current = workout.exercises[workout.current];
   const prevSets = current ? (previous.get(current.exerciseId) ?? []) : [];
+  const prevBest = bestE1RM(
+    prevSets
+      .filter((p) => p.set_type !== "warmup")
+      .map((p) => ({ weightKg: p.weight_kg, reps: p.reps })),
+  );
+  const nowBest = current
+    ? bestE1RM(
+        current.sets
+          .filter((x) => x.doneAt && x.setType !== "warmup")
+          .map((x) => ({ weightKg: num(x.weight), reps: num(x.reps) })),
+      )
+    : null;
   const firstOpen = current ? current.sets.findIndex((s) => !s.doneAt) : -1;
   const activeIndex =
     focusRow !== null && current?.sets[focusRow] && !current.sets[focusRow]!.doneAt
@@ -162,6 +177,16 @@ export function WorkoutScreen() {
       durationMin: summary.durationMin,
       volumeKg: summary.volumeKg,
       setCount: summary.setCount,
+      prevVolumeKg: Math.round(
+        workout.exercises.reduce(
+          (sum, ex) =>
+            sum +
+            (previous.get(ex.exerciseId) ?? [])
+              .filter((p) => p.set_type !== "warmup")
+              .reduce((v, p) => v + (p.weight_kg ?? 0) * (p.reps ?? 0), 0),
+          0,
+        ),
+      ),
       prs: summary.prs.map((p) => ({
         name: names.get(p.exerciseId) ?? "",
         weightKg: p.weightKg,
@@ -228,6 +253,24 @@ export function WorkoutScreen() {
             <h1 className="text-4xl leading-tight font-black">
               {names.get(current.exerciseId) ?? "…"}
             </h1>
+            {(nowBest !== null || prevBest !== null) && (
+              <p className="num text-muted text-sm">
+                {nowBest !== null ? (
+                  <>
+                    推定1RM <span className="text-fg">{nowBest.toFixed(1)}</span>kg
+                    {prevBest !== null && (
+                      <span
+                        className={cn("ml-1", nowBest > prevBest ? "text-accent" : "text-ghost")}
+                      >
+                        （前回 {signedDiff(nowBest, prevBest)}）
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-ghost">前回の推定1RM {prevBest!.toFixed(1)}kg</span>
+                )}
+              </p>
+            )}
             <ExerciseNote
               key={current.exerciseId}
               exerciseId={current.exerciseId}
