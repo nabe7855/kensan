@@ -4,6 +4,7 @@ export type PlanItem = { id: string; grams: number; food: Food };
 
 export type PlanMeal = {
   slot: string;
+  createdAt: string;
   eatenAt: string | null;
   title: string | null;
   templateId: string | null;
@@ -51,4 +52,31 @@ export function variantLabel(name: string, group: string | null): string {
   if (!group) return name;
   const trimmed = name.replace(group, "").replace(/^[\s/／・:：-]+|[\s/／・:：-]+$/g, "");
   return trimmed || name;
+}
+
+const NUMBERED = /^(\d+)食目$/;
+
+/** Name for the next meal of the day: one more than the highest "N食目", never a duplicate. */
+export function nextMealName(existing: string[]): string {
+  const highest = Math.max(0, ...existing.map((s) => Number(NUMBERED.exec(s)?.[1] ?? 0)));
+  let n = Math.max(highest, existing.length) + 1;
+  while (existing.includes(`${n}食目`)) n++;
+  return `${n}食目`;
+}
+
+/** Whether a slot name is a plain ordinal ("2食目") rather than a custom name ("朝"). */
+export function isOrdinalSlot(slot: string): boolean {
+  return NUMBERED.test(slot);
+}
+
+/** The day's meal names in order: logged meals by creation time, then unsaved new ones; at least "1食目". */
+export function mealOrder(
+  logged: { slot: string; createdAt: string }[],
+  pending: string[],
+): string[] {
+  const names = [...logged]
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((m) => m.slot);
+  for (const p of pending) if (!names.includes(p)) names.push(p);
+  return names.length > 0 ? names : ["1食目"];
 }

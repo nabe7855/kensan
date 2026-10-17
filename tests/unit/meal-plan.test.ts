@@ -28,6 +28,7 @@ const chicken = food("chicken", 105, 23.3, 1.9, 0.1);
 
 const meal = (slot: string, eaten: boolean, items: [Food, number][]): PlanMeal => ({
   slot,
+  createdAt: "2026-10-15T00:00:00Z",
   eatenAt: eaten ? "2026-10-15T08:00:00Z" : null,
   title: null,
   templateId: null,
@@ -76,5 +77,31 @@ describe("variants", () => {
     expect(variantLabel("1食目 鯖", "1食目")).toBe("鯖");
     expect(variantLabel("1食目／鶏むね", "1食目")).toBe("鶏むね");
     expect(variantLabel("夜固定", null)).toBe("夜固定");
+  });
+});
+
+describe("meal naming and order", () => {
+  it("numbers the next meal after the highest one", async () => {
+    const { nextMealName } = await import("@/lib/meal-plan");
+    expect(nextMealName([])).toBe("1食目");
+    expect(nextMealName(["1食目"])).toBe("2食目");
+    expect(nextMealName(["1食目", "3食目"])).toBe("4食目");
+    expect(nextMealName(["朝", "昼"])).toBe("3食目");
+  });
+
+  it("orders logged meals by time, then new ones, defaulting to 1食目", async () => {
+    const { mealOrder, isOrdinalSlot } = await import("@/lib/meal-plan");
+    expect(mealOrder([], [])).toEqual(["1食目"]);
+    expect(
+      mealOrder(
+        [
+          { slot: "2食目", createdAt: "2026-10-17T12:00:00Z" },
+          { slot: "1食目", createdAt: "2026-10-17T07:00:00Z" },
+        ],
+        ["3食目", "1食目"],
+      ),
+    ).toEqual(["1食目", "2食目", "3食目"]);
+    expect(isOrdinalSlot("2食目")).toBe(true);
+    expect(isOrdinalSlot("朝")).toBe(false);
   });
 });

@@ -45,6 +45,7 @@ export function useDayMeals(date: string) {
       const rows = await unwrap<
         {
           slot: string;
+          created_at: string;
           eaten_at: string | null;
           title: string | null;
           template_id: string | null;
@@ -54,12 +55,13 @@ export function useDayMeals(date: string) {
         getSupabase()
           .from("meal_logs")
           .select(
-            `slot, eaten_at, title, template_id, meal_log_items(id, grams, created_at, foods(${FOOD_COLUMNS}))`,
+            `slot, created_at, eaten_at, title, template_id, meal_log_items(id, grams, created_at, foods(${FOOD_COLUMNS}))`,
           )
           .eq("date", date),
       );
       return rows.map((r) => ({
         slot: r.slot,
+        createdAt: r.created_at,
         eatenAt: r.eaten_at,
         title: r.title,
         templateId: r.template_id,

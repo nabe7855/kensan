@@ -3,19 +3,11 @@
 import { MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useAppData } from "@/components/providers/AppDataProvider";
 import { Button } from "@/components/ui/button";
 import { DateNav } from "@/components/ui/date-nav";
 import { fillReason, suggestFill } from "@/lib/fill";
-import { dayTotals } from "@/lib/meal-plan";
-import {
-  dayTypeFor,
-  slotForHour,
-  subtractMacros,
-  sumMacros,
-  targetFor,
-  type DayType,
-} from "@/lib/nutrition";
+import { dayTotals, mealOrder, nextMealName } from "@/lib/meal-plan";
+import { dayTypeFor, subtractMacros, sumMacros, targetFor, type DayType } from "@/lib/nutrition";
 import { todayISO } from "@/lib/prep";
 import {
   useDayMeals,
@@ -39,10 +31,16 @@ import { Sheet } from "@/components/ui/sheet";
 import { useMealActions } from "./useMealActions";
 
 export function NutritionScreen() {
-  const { mealSlots } = useAppData();
   const today = todayISO();
-  const [date, setDate] = useState(today);
-  const [slot, setSlot] = useState(() => slotForHour(new Date().getHours(), mealSlots));
+  const [date, setDateState] = useState(today);
+  const [selectedSlot, setSlot] = useState<string | null>(null);
+  // New meals that have no food yet (they are saved once something is added).
+  const [pending, setPending] = useState<string[]>([]);
+  const setDate = (d: string) => {
+    setDateState(d);
+    setPending([]);
+    setSlot(null);
+  };
   const [adding, setAdding] = useState<string | null>(null);
   const [choosingSet, setChoosingSet] = useState<string | null>(null);
   const [savingSet, setSavingSet] = useState<string | null>(null);
@@ -71,10 +69,8 @@ export function NutritionScreen() {
     [remaining?.protein_g, remaining?.fat_g, remaining?.carb_g, frequent.data],
   );
 
-  const slots = [
-    ...mealSlots,
-    ...(meals.data ?? []).map((m) => m.slot).filter((s) => !mealSlots.includes(s)),
-  ];
+  const slots = mealOrder(meals.data ?? [], pending);
+  const slot = selectedSlot && slots.includes(selectedSlot) ? selectedSlot : slots.at(-1)!;
 
   function flash(text: string) {
     setNotice(text);
@@ -204,6 +200,18 @@ export function NutritionScreen() {
           />
         );
       })}
+
+      <button
+        type="button"
+        onClick={() => {
+          const name = nextMealName(slots);
+          setPending((p) => [...p, name]);
+          setSlot(name);
+        }}
+        className="border-border text-accent flex h-14 items-center justify-center rounded-md border border-dashed text-sm"
+      >
+        ＋ 次の食事を追加（{nextMealName(slots)}）
+      </button>
 
       {fills.length > 0 && (
         <section className="surface border-l-accent flex flex-col gap-2 border-l-2 px-3 py-3">

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { displayAmount, foodGroupLabel, hasUnit, stepGrams } from "@/lib/food-groups";
 import {
+  isOrdinalSlot,
   lowProteinNote,
   mealMacros,
   proteinShare,
@@ -112,7 +113,7 @@ export function MealCard(props: Props) {
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className={cn("text-xs", selected ? "text-accent" : "text-muted")}>
-            {index + 1}食目 ・ {slot}
+            {index + 1}食目{isOrdinalSlot(slot) ? "" : ` ・ ${slot}`}
           </span>
           <span className="truncate text-lg font-bold">
             {meal?.title ?? (empty ? "未設定" : "記録")}

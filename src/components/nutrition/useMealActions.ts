@@ -28,7 +28,17 @@ export function useMealActions(date: string) {
       patchDay((day) =>
         day.some((m) => m.slot === slot)
           ? day
-          : [...day, { slot, eatenAt, title: null, templateId: null, items: [] }],
+          : [
+              ...day,
+              {
+                slot,
+                createdAt: new Date().toISOString(),
+                eatenAt,
+                title: null,
+                templateId: null,
+                items: [],
+              },
+            ],
       );
       await write({
         table: "meal_logs",
