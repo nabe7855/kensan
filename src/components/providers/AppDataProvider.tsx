@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { PhaseSplit } from "@/lib/cut-phases";
+import type { PhaseDates, PhaseSplit } from "@/lib/cut-phases";
 
 export type ActivePrep = {
   id: string;
@@ -13,7 +13,7 @@ export type ActivePrep = {
   weekly_rate_pct: number;
   why_text: string | null;
   /** Chosen phase lengths in weeks; null for the default split. */
-  phase_split?: PhaseSplit | null;
+  phase_split?: PhaseSplit | PhaseDates | null;
 };
 
 export type TrainingPhase = "bulk" | "maintain" | "cut";

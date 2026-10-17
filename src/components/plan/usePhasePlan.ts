@@ -7,6 +7,7 @@ import {
   maintenanceFromWeight,
   planPhases,
   type Phase,
+  type PhaseDates,
   type PhaseSplit,
 } from "@/lib/cut-phases";
 import { kvDelete, kvGet, kvSet } from "@/lib/offline/db";
@@ -19,7 +20,7 @@ const KEY = "maintenanceKcal";
 export type MaintenanceSource = "manual" | "records" | "weight";
 
 /** The active prep split into phases, with the maintenance it is based on (editable, kept on device). */
-export function usePhasePlan(draftSplit?: PhaseSplit | null) {
+export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null) {
   const { prep } = useAppData();
   // While editing, the draft previews the new lengths; otherwise the saved split (or default).
   const split = draftSplit !== undefined ? draftSplit : (prep?.phase_split ?? null);

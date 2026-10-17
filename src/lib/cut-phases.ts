@@ -146,11 +146,76 @@ export function estimateMaintenance(
 export const maintenanceFromWeight = (kg: number) => round50(kg * 31);
 
 /** Split the prep into early / mid / late / peak with a calorie and PFC guideline for each. */
-export function planPhases(input: PlanInput, split?: PhaseSplit | null): Phase[] {
+/** Start dates picked on the calendar for mid, late and the peak week; early starts with the prep. */
+export type PhaseDates = { mid: string; late: string; peak: string };
+
+export function isPhaseDates(x: unknown): x is PhaseDates {
+  if (!x || typeof x !== "object") return false;
+  const d = x as Record<string, unknown>;
+  return [d.mid, d.late, d.peak].every(
+    (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
+  );
+}
+
+const dayDiff = (a: string, b: string) =>
+  Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+
+/** Each phase needs at least one day, in order, ending the day before the contest. */
+export function datesValid(start: string, contest: string, d: PhaseDates): boolean {
+  return start < d.mid && d.mid < d.late && d.late < d.peak && d.peak < contest;
+}
+
+/** Phase lengths in (fractional) weeks from calendar dates, or null when they're out of order. */
+export function weeksFromDates(
+  start: string,
+  contest: string,
+  d: PhaseDates,
+): Record<PhaseKey, number> | null {
+  if (!datesValid(start, contest, d)) return null;
+  return {
+    early: dayDiff(start, d.mid) / 7,
+    mid: dayDiff(d.mid, d.late) / 7,
+    late: dayDiff(d.late, d.peak) / 7,
+    peak: dayDiff(d.peak, contest) / 7,
+  };
+}
+
+/** Starting dates for the editor: the default split, as dates. */
+export function initialDates(start: string, contest: string): PhaseDates | null {
+  const days = dayDiff(start, contest);
+  if (days < 4) return null;
+  // Same boundaries as the default plan when it has all four phases.
+  const w = phaseWeeks(days / 7);
+  if (w.early && w.mid && w.late && w.peak) {
+    const mid = addDaysISO(start, w.early * 7);
+    const late = addDaysISO(mid, w.mid * 7);
+    return { mid, late, peak: addDaysISO(late, w.late * 7) };
+  }
+  // Short preps: split the days into four roughly equal parts.
+  const q = Math.floor(days / 4);
+  return {
+    mid: addDaysISO(start, q),
+    late: addDaysISO(start, q * 2),
+    peak: addDaysISO(start, q * 3),
+  };
+}
+
+/** Phase lengths as "6週2日". */
+export function lengthLabel(from: string, toExclusive: string): string {
+  const days = dayDiff(from, toExclusive);
+  const w = Math.floor(days / 7);
+  const r = days % 7;
+  return w && r ? `${w}週${r}日` : w ? `${w}週` : `${r}日`;
+}
+
+export function planPhases(input: PlanInput, split?: PhaseSplit | PhaseDates | null): Phase[] {
   const { startDate, contestDate, startKg, targetKg, maintenanceKcal } = input;
   const total = weeksBetween(startDate, contestDate);
   if (total <= 0) return [];
-  const weeks = (split && customWeeks(total, split)) ?? phaseWeeks(total);
+  const weeks =
+    (isPhaseDates(split)
+      ? weeksFromDates(startDate, contestDate, split)
+      : split && customWeeks(total, split)) ?? phaseWeeks(total);
   const loss = Math.max(0, startKg - targetKg);
   const keys = (["early", "mid", "late", "peak"] as const).filter((k) => weeks[k]);
   const share = keys.reduce(

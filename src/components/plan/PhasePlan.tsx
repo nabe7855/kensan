@@ -9,17 +9,20 @@ import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import {
-  customWeeks,
+  datesValid,
   daysLeftInPhase,
-  defaultSplit,
+  initialDates,
+  lengthLabel,
   phaseOn,
   type Phase,
+  type PhaseDates,
   type PhaseSplit,
 } from "@/lib/cut-phases";
 import type { Target } from "@/lib/nutrition";
-import { daysUntilContest, weeksBetween } from "@/lib/prep";
+import { daysUntilContest } from "@/lib/prep";
 import { nutritionKeys, useTargets } from "@/lib/queries/nutrition";
 import { cn } from "@/lib/utils";
+import { PhaseCalendar, type Boundary } from "./PhaseCalendar";
 import { usePhasePlan } from "./usePhasePlan";
 
 const md = (d: string) => d.slice(5).replace("-", "/");
@@ -150,67 +153,20 @@ function PhaseCard({ p, current, today }: { p: Phase; current: boolean; today: s
   );
 }
 
-const LENGTH_ROWS = [
-  { key: "early", label: "初期" },
-  { key: "mid", label: "中期" },
-  { key: "late", label: "後期" },
-  { key: "peak", label: "最終調整" },
-] as const;
+const BOUNDARIES: { key: Boundary; label: string }[] = [
+  { key: "mid", label: "中期の開始" },
+  { key: "late", label: "後期の開始" },
+  { key: "peak", label: "最終調整の開始" },
+];
+const NEXT: Record<Boundary, Boundary> = { mid: "late", late: "peak", peak: "peak" };
 
-/** Weeks per phase; late is whatever is left so the total always matches the prep. */
-function LengthEditor({
-  total,
-  value,
-  onChange,
-}: {
-  total: number;
-  value: PhaseSplit;
-  onChange: (v: PhaseSplit) => void;
-}) {
-  const late = total - value.early - value.mid - value.peak;
-  return (
-    <ul className="flex flex-col gap-1.5">
-      {LENGTH_ROWS.map((row) => {
-        const n = row.key === "late" ? late : value[row.key];
-        const max = row.key === "peak" ? 8 : total;
-        return (
-          <li key={row.key} className="flex min-h-12 items-center justify-between gap-2">
-            <span className="text-sm">{row.label}</span>
-            {row.key === "late" ? (
-              <span className="text-muted text-sm">
-                <span className="num text-fg text-lg">{n}</span> 週（残り）
-              </span>
-            ) : (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  aria-label={`${row.label}を 1 週減らす`}
-                  disabled={n <= 0}
-                  onClick={() => onChange({ ...value, [row.key]: n - 1 })}
-                  className="border-border size-12 rounded-md border text-lg disabled:opacity-30"
-                >
-                  −
-                </button>
-                <span className="w-14 text-center">
-                  <span className="num text-lg">{n}</span>
-                  <span className="text-muted text-xs"> 週</span>
-                </span>
-                <button
-                  type="button"
-                  aria-label={`${row.label}を 1 週増やす`}
-                  disabled={late <= 1 || n >= max}
-                  onClick={() => onChange({ ...value, [row.key]: n + 1 })}
-                  className="border-border size-12 rounded-md border text-lg disabled:opacity-30"
-                >
-                  ＋
-                </button>
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
+/** Current start dates of mid / late / peak from the planned phases, for the editor. */
+function datesOf(phases: Phase[]): PhaseDates | null {
+  const start = (k: Phase["key"]) => phases.find((p) => p.key === k)?.start;
+  const mid = start("mid");
+  const late = start("late");
+  const peak = start("peak");
+  return mid && late && peak ? { mid, late, peak } : null;
 }
 
 /** Early / mid / late / peak guideline for the active prep, with an option to schedule it as targets. */
@@ -221,8 +177,9 @@ export function PhasePlan() {
   const { write } = useSync();
   const targets = useTargets();
   // undefined: use the saved split. A value: preview while editing, or what was just saved.
-  const [draft, setDraft] = useState<PhaseSplit | null | undefined>(undefined);
+  const [draft, setDraft] = useState<PhaseSplit | PhaseDates | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
+  const [active, setActive] = useState<Boundary>("mid");
   const { prep, today, phases, maintenance, source, estimated, setMaintenance } =
     usePhasePlan(draft);
   const actions = useMealActions(today);
@@ -247,13 +204,24 @@ export function PhasePlan() {
   const upcoming = phases.filter((p) => p.end >= today);
   const left = daysUntilContest(prep.contest_date, today);
 
-  const totalWeeks = Math.floor(weeksBetween(prep.start_date, prep.contest_date));
   const saved = prep.phase_split ?? null;
-  const shownSplit = draft !== undefined ? draft : saved;
-  const editValue =
-    shownSplit && customWeeks(totalWeeks, shownSplit) ? shownSplit : defaultSplit(totalWeeks);
+  const custom = (draft !== undefined ? draft : saved) !== null;
+  // While editing, the draft is always calendar dates; start from what's planned now.
+  const editDates: PhaseDates | null =
+    editing && draft && "late" in draft && typeof draft.late === "string"
+      ? (draft as PhaseDates)
+      : (datesOf(phases) ?? initialDates(prep.start_date, prep.contest_date));
+  const canEdit = initialDates(prep.start_date, prep.contest_date) !== null;
 
-  async function saveSplit(value: PhaseSplit | null) {
+  function pick(date: string) {
+    if (!editDates) return;
+    const next = { ...editDates, [active]: date };
+    if (!datesValid(prep!.start_date, prep!.contest_date, next)) return;
+    setDraft(next);
+    setActive(NEXT[active]);
+  }
+
+  async function saveSplit(value: PhaseDates | null) {
     setDraft(value);
     setEditing(false);
     setApplied(false);
@@ -325,19 +293,56 @@ export function PhasePlan() {
 
       {phases.length > 0 && <Timeline phases={phases} today={today} />}
 
-      {totalWeeks >= 2 &&
-        (editing ? (
-          <section className="surface flex flex-col gap-3 px-4 py-3">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-base font-bold">期間を調整</h2>
-              <span className="text-muted text-xs">
-                全 <span className="num">{totalWeeks}</span> 週
-              </span>
+      {canEdit &&
+        (editing && editDates ? (
+          <section className="surface flex flex-col gap-3 px-3 py-3">
+            <h2 className="text-base font-bold">期間を調整</h2>
+            <div role="tablist" aria-label="動かす日" className="grid grid-cols-3 gap-1.5">
+              {BOUNDARIES.map((b) => (
+                <button
+                  key={b.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === b.key}
+                  onClick={() => setActive(b.key)}
+                  className={cn(
+                    "flex h-14 flex-col items-center justify-center rounded-md border",
+                    active === b.key ? "border-accent text-accent" : "border-border text-muted",
+                  )}
+                >
+                  <span className="text-[11px]">{b.label}</span>
+                  <span className="num text-lg leading-tight">{md(editDates[b.key])}</span>
+                </button>
+              ))}
             </div>
-            <LengthEditor total={totalWeeks} value={editValue} onChange={setDraft} />
-            <p className="text-ghost text-xs leading-relaxed">
-              変えると下の日付とカロリーがすぐ変わります。後期は残りの週数になり、最低 1 週です
+            <p className="text-muted text-xs leading-relaxed">
+              上で動かす日を選び、カレンダーの日付をタップ。選べない日は薄く表示しています
             </p>
+            <ul className="text-muted grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+              {(
+                [
+                  ["初期", prep.start_date, editDates.mid],
+                  ["中期", editDates.mid, editDates.late],
+                  ["後期", editDates.late, editDates.peak],
+                  ["最終調整", editDates.peak, prep.contest_date],
+                ] as const
+              ).map(([label, from, to]) => (
+                <li key={label} className="flex justify-between">
+                  <span>{label}</span>
+                  <span className="num text-fg">{lengthLabel(from, to)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="max-h-[52vh] overflow-y-auto overscroll-contain pr-1">
+              <PhaseCalendar
+                start={prep.start_date}
+                contest={prep.contest_date}
+                dates={editDates}
+                today={today}
+                active={active}
+                onPick={pick}
+              />
+            </div>
             <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="ghost"
@@ -351,19 +356,20 @@ export function PhasePlan() {
               <Button variant="secondary" onClick={() => void saveSplit(null)}>
                 既定に戻す
               </Button>
-              <Button onClick={() => void saveSplit(editValue)}>保存</Button>
+              <Button onClick={() => void saveSplit(editDates)}>保存</Button>
             </div>
           </section>
         ) : (
           <button
             type="button"
             onClick={() => {
-              setDraft(editValue);
+              setDraft(datesOf(phases) ?? initialDates(prep.start_date, prep.contest_date));
+              setActive("mid");
               setEditing(true);
             }}
             className="text-accent -mt-2 h-10 self-start text-sm underline underline-offset-4"
           >
-            {shownSplit ? "期間を調整（自分で設定中）" : "期間を調整"}
+            {custom ? "カレンダーで期間を調整（自分で設定中）" : "カレンダーで期間を調整"}
           </button>
         ))}
 
