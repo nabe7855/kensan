@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRestTimer } from "@/components/providers/RestTimerProvider";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
+import { RestAlertSettings } from "./RestAlertSettings";
 import { addPreset, MAX_PRESETS, presetLabel, removePreset } from "@/lib/rest-timer";
 
 /** Edit the user's countdown presets (stored on this device). */
@@ -73,6 +74,7 @@ function PresetSheet({ onClose }: { onClose: () => void }) {
           </div>
           <span className="text-ghost text-xs">最大 {MAX_PRESETS} 個。この端末に保存されます</span>
         </div>
+        <RestAlertSettings />
       </div>
     </Sheet>
   );

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAppData, type TrainingPhase } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
+import { RestAlertSettings } from "@/components/rest/RestAlertSettings";
 import { cn } from "@/lib/utils";
 
 const PHASES: { key: TrainingPhase; label: string; note: string }[] = [
@@ -132,6 +133,7 @@ export function TrainingSettings() {
           </button>
         </div>
       )}
+      <RestAlertSettings />
       <Toggle
         label="RIR（余力）を記録する"
         note="毎セット限界まで追い込むなら不要。オンにするとセット表に列が出る"

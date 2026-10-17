@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Set by KeyboardWatcher while the on-screen keyboard is up. */
+@custom-variant kb-open (html[data-kb="open"] &);
+
 @theme {
   --color-bg: #0a0a0c;
   --color-card: #141418;

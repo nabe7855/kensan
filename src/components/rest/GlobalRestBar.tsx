@@ -27,7 +27,7 @@ export function GlobalRestBar() {
     <>
       {/* keeps page content clear of the fixed bar */}
       <div aria-hidden className="h-16" />
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40">
+      <div className="kb-open:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40">
         <div className="mx-auto max-w-[480px] px-4 pb-2">
           <div
             role="timer"

@@ -6,6 +6,7 @@ import { SyncProvider } from "@/components/providers/SyncProvider";
 import { GlobalRestBar } from "@/components/rest/GlobalRestBar";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
+import { KeyboardWatcher } from "@/components/shell/KeyboardWatcher";
 import { StatusStrip } from "@/components/shell/StatusStrip";
 import type { PhaseSplit } from "@/lib/cut-phases";
 import { getCurrentProfile } from "@/lib/profile";
@@ -46,6 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <StatusStrip />
             </main>
             <BottomTabBar />
+            <KeyboardWatcher />
           </RestTimerProvider>
         </SyncProvider>
       </AppDataProvider>
