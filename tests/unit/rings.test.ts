@@ -28,3 +28,40 @@ it("dashOffset empties and fills the stroke", () => {
   expect(dashOffset(100, 1)).toBe(0);
   expect(dashOffset(100, 2)).toBe(0);
 });
+
+describe("weekly counts", () => {
+  it("finds Monday", async () => {
+    const { weekStartISO } = await import("@/lib/rings");
+    expect(weekStartISO("2026-10-17")).toBe("2026-10-12");
+    expect(weekStartISO("2026-10-12")).toBe("2026-10-12");
+    expect(weekStartISO("2026-10-18")).toBe("2026-10-12");
+  });
+
+  it("compares this week's training days with the usual", async () => {
+    const { trainingFrequency } = await import("@/lib/rings");
+    const prior = [
+      "2026-09-15",
+      "2026-09-17",
+      "2026-09-22",
+      "2026-09-24",
+      "2026-09-29",
+      "2026-10-01",
+      "2026-10-06",
+      "2026-10-08",
+    ];
+    expect(
+      trainingFrequency([...prior, "2026-10-13", "2026-10-13", "2026-10-15"], "2026-10-17"),
+    ).toEqual({
+      thisWeek: 2,
+      usual: 2,
+    });
+    expect(trainingFrequency(["2026-10-13"], "2026-10-17")).toEqual({ thisWeek: 1, usual: null });
+  });
+
+  it("counts recorded days in the last week", async () => {
+    const { recordedDays } = await import("@/lib/rings");
+    expect(
+      recordedDays(["2026-10-17", "2026-10-11", "2026-10-10", "2026-10-18"], "2026-10-17"),
+    ).toBe(2);
+  });
+});
