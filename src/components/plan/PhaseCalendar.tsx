@@ -4,7 +4,8 @@ import type { PhaseDates } from "@/lib/cut-phases";
 import { addDaysISO } from "@/lib/prep";
 import { cn } from "@/lib/utils";
 
-export type Boundary = keyof PhaseDates;
+/** "start" is the prep's start date (the beginning of 初期); the rest are phase start dates. */
+export type Boundary = "start" | keyof PhaseDates;
 
 const HEAD = ["月", "火", "水", "木", "金", "土", "日"];
 const PHASE_CLASS = {
@@ -13,7 +14,14 @@ const PHASE_CLASS = {
   late: "bg-accent/60",
   peak: "bg-accent text-bg",
 } as const;
-const START_LABEL: Record<Boundary, string> = { mid: "中期", late: "後期", peak: "最終" };
+const START_LABEL: Record<Boundary, string> = {
+  start: "初期",
+  mid: "中期",
+  late: "後期",
+  peak: "最終",
+};
+/** How far before the current start the calendar reaches, so the start can move earlier. */
+const LOOKBACK_DAYS = 12 * 7;
 
 type PhaseKey = keyof typeof PHASE_CLASS;
 
@@ -28,7 +36,13 @@ export function boundaryRange(
   start: string,
   contest: string,
   d: PhaseDates,
+  today: string,
 ): [string, string] {
+  // The start can go back as far as the calendar shows, but not past today or 中期.
+  if (key === "start") {
+    const latest = addDaysISO(d.mid, -1);
+    return [addDaysISO(start, -LOOKBACK_DAYS), latest < today ? latest : today];
+  }
   const prev = key === "mid" ? start : key === "late" ? d.mid : d.late;
   const next = key === "mid" ? d.late : key === "late" ? d.peak : contest;
   return [addDaysISO(prev, 1), addDaysISO(next, -1)];
@@ -66,14 +80,15 @@ export function PhaseCalendar({
   active: Boundary;
   onPick: (date: string) => void;
 }) {
-  const [min, max] = boundaryRange(active, start, contest, dates);
+  const [min, max] = boundaryRange(active, start, contest, dates, today);
+  const all = { start, ...dates };
   const starts = new Map<string, Boundary>(
-    (Object.keys(START_LABEL) as Boundary[]).map((k) => [dates[k], k]),
+    (Object.keys(START_LABEL) as Boundary[]).map((k) => [all[k], k]),
   );
 
   return (
     <div className="flex flex-col gap-4">
-      {months(start, contest).map(({ y, m }) => {
+      {months(addDaysISO(start, -LOOKBACK_DAYS), contest).map(({ y, m }) => {
         const first = new Date(Date.UTC(y, m - 1, 1));
         const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
         const offset = (first.getUTCDay() + 6) % 7;
@@ -108,13 +123,13 @@ export function PhaseCalendar({
                     disabled={!pickable}
                     onClick={() => onPick(date)}
                     aria-label={`${m}月${Number(date.slice(8))}日${boundary ? `（${START_LABEL[boundary]}の開始）` : ""}`}
-                    aria-pressed={dates[active] === date}
+                    aria-pressed={all[active] === date}
                     className={cn(
                       "relative flex h-11 flex-col items-center justify-center rounded-sm",
                       phase ? PHASE_CLASS[phase] : "text-ghost",
                       !pickable && "opacity-50",
                       isContest && "border-accent border-2 font-bold",
-                      dates[active] === date && "ring-fg ring-2",
+                      all[active] === date && "ring-fg ring-2",
                       date === today && "underline underline-offset-2",
                     )}
                   >

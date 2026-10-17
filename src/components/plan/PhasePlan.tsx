@@ -154,11 +154,17 @@ function PhaseCard({ p, current, today }: { p: Phase; current: boolean; today: s
 }
 
 const BOUNDARIES: { key: Boundary; label: string }[] = [
+  { key: "start", label: "初期の開始" },
   { key: "mid", label: "中期の開始" },
   { key: "late", label: "後期の開始" },
   { key: "peak", label: "最終調整の開始" },
 ];
-const NEXT: Record<Boundary, Boundary> = { mid: "late", late: "peak", peak: "peak" };
+const NEXT: Record<Boundary, Boundary> = {
+  start: "mid",
+  mid: "late",
+  late: "peak",
+  peak: "peak",
+};
 
 /** Current start dates of mid / late / peak from the planned phases, for the editor. */
 function datesOf(phases: Phase[]): PhaseDates | null {
@@ -179,9 +185,12 @@ export function PhasePlan() {
   // undefined: use the saved split. A value: preview while editing, or what was just saved.
   const [draft, setDraft] = useState<PhaseSplit | PhaseDates | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
-  const [active, setActive] = useState<Boundary>("mid");
-  const { prep, today, phases, maintenance, source, estimated, setMaintenance } =
-    usePhasePlan(draft);
+  const [active, setActive] = useState<Boundary>("start");
+  const [draftStart, setDraftStart] = useState<string | undefined>(undefined);
+  const { prep, today, phases, maintenance, source, estimated, setMaintenance } = usePhasePlan(
+    draft,
+    draftStart,
+  );
   const actions = useMealActions(today);
   const [confirming, setConfirming] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -212,11 +221,18 @@ export function PhasePlan() {
       ? (draft as PhaseDates)
       : (datesOf(phases) ?? initialDates(prep.start_date, prep.contest_date));
   const canEdit = initialDates(prep.start_date, prep.contest_date) !== null;
+  const startDate = draftStart ?? prep.start_date;
 
   function pick(date: string) {
     if (!editDates) return;
+    if (active === "start") {
+      if (date > today || !datesValid(date, prep!.contest_date, editDates)) return;
+      setDraftStart(date);
+      setActive(NEXT.start);
+      return;
+    }
     const next = { ...editDates, [active]: date };
-    if (!datesValid(prep!.start_date, prep!.contest_date, next)) return;
+    if (!datesValid(startDate, prep!.contest_date, next)) return;
     setDraft(next);
     setActive(NEXT[active]);
   }
@@ -229,7 +245,7 @@ export function PhasePlan() {
       table: "preps",
       kind: "update",
       match: { id: prep!.id, user_id: userId },
-      payload: { phase_split: value },
+      payload: { phase_split: value, ...(draftStart ? { start_date: draftStart } : {}) },
     });
     router.refresh();
   }
@@ -297,7 +313,7 @@ export function PhasePlan() {
         (editing && editDates ? (
           <section className="surface flex flex-col gap-3 px-3 py-3">
             <h2 className="text-base font-bold">期間を調整</h2>
-            <div role="tablist" aria-label="動かす日" className="grid grid-cols-3 gap-1.5">
+            <div role="tablist" aria-label="動かす日" className="grid grid-cols-4 gap-1">
               {BOUNDARIES.map((b) => (
                 <button
                   key={b.key}
@@ -311,7 +327,9 @@ export function PhasePlan() {
                   )}
                 >
                   <span className="text-[11px]">{b.label}</span>
-                  <span className="num text-lg leading-tight">{md(editDates[b.key])}</span>
+                  <span className="num text-lg leading-tight">
+                    {md(b.key === "start" ? startDate : editDates[b.key])}
+                  </span>
                 </button>
               ))}
             </div>
@@ -321,7 +339,7 @@ export function PhasePlan() {
             <ul className="text-muted grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
               {(
                 [
-                  ["初期", prep.start_date, editDates.mid],
+                  ["初期", startDate, editDates.mid],
                   ["中期", editDates.mid, editDates.late],
                   ["後期", editDates.late, editDates.peak],
                   ["最終調整", editDates.peak, prep.contest_date],
@@ -335,7 +353,7 @@ export function PhasePlan() {
             </ul>
             <div className="max-h-[52vh] overflow-y-auto overscroll-contain pr-1">
               <PhaseCalendar
-                start={prep.start_date}
+                start={startDate}
                 contest={prep.contest_date}
                 dates={editDates}
                 today={today}
@@ -348,6 +366,7 @@ export function PhasePlan() {
                 variant="ghost"
                 onClick={() => {
                   setDraft(undefined);
+                  setDraftStart(undefined);
                   setEditing(false);
                 }}
               >
@@ -364,7 +383,7 @@ export function PhasePlan() {
             type="button"
             onClick={() => {
               setDraft(datesOf(phases) ?? initialDates(prep.start_date, prep.contest_date));
-              setActive("mid");
+              setActive("start");
               setEditing(true);
             }}
             className="text-accent -mt-2 h-10 self-start text-sm underline underline-offset-4"
