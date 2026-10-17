@@ -27,6 +27,7 @@ import { SaveSetSheet } from "./SaveSetSheet";
 import { SetSheet } from "./SetSheet";
 import { SubstituteSheet } from "./SubstituteSheet";
 import { MacroCards } from "./MacroCards";
+import { ProteinRing } from "./ProteinRing";
 import { TargetEditor } from "./TargetEditor";
 import { Sheet } from "@/components/ui/sheet";
 import { useMealActions } from "./useMealActions";
@@ -113,6 +114,11 @@ export function NutritionScreen() {
         </button>
       </DateNav>
 
+      <ProteinRing
+        eaten={eaten.protein_g}
+        planned={planned.protein_g}
+        target={target?.protein_g ?? null}
+      />
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <MacroCards eaten={eaten} planned={planned} target={target} />
@@ -331,7 +337,7 @@ export function NutritionScreen() {
         </section>
       )}
 
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30">
+      <div className="fixed inset-x-0 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] z-30">
         <div className="mx-auto max-w-[480px] px-4 pb-2">
           <Button size="lg" className="w-full" onClick={() => setAdding(slot)}>
             ＋ {slot}に食品を追加
