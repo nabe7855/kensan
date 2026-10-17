@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { ExercisePicker } from "@/components/training/ExercisePicker";
@@ -29,6 +29,8 @@ import {
 } from "@/lib/workout";
 import { ExerciseNote } from "./ExerciseNote";
 import { RestTimer } from "./RestTimer";
+import { RestPicker } from "@/components/rest/RestPicker";
+import { useRestTimer } from "@/components/providers/RestTimerProvider";
 import { prevFor, SetTable } from "./SetTable";
 import { StepperBar } from "./StepperBar";
 
@@ -63,7 +65,7 @@ export function WorkoutScreen() {
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
 
-  const endRest = useCallback(() => update((w) => ({ ...w, rest: null })), [update]);
+  const restTimer = useRestTimer();
 
   if (!loaded) return <div className="surface h-96 animate-pulse" aria-busy />;
   if (!workout) {
@@ -121,13 +123,9 @@ export function WorkoutScreen() {
     setFlashId(s.id);
     setTimeout(() => setFlashId((id) => (id === s.id ? null : id)), 600);
     setFocusRow(null);
-    const restSec = current.restSec || DEFAULT_REST_SEC;
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      void Notification.requestPermission();
-    }
+    restTimer.start();
     update((w) => ({
       ...w,
-      rest: { endsAt: Date.now() + restSec * 1000, totalSec: restSec },
       exercises: w.exercises.map((ex, j) =>
         j === w.current
           ? {
@@ -212,7 +210,7 @@ export function WorkoutScreen() {
   const activePrev = prevFor(prevSets, activeIndex);
 
   return (
-    <div className={cn("flex flex-col gap-3", workout.rest ? "pb-56" : "pb-24")}>
+    <div className={cn("flex flex-col gap-3", restTimer.timer ? "pb-56" : "pb-24")}>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {workout.exercises.map((ex, i) => {
           const done = ex.sets.filter((s) => s.doneAt).length;
@@ -327,6 +325,11 @@ export function WorkoutScreen() {
         </div>
       )}
 
+      <section className="surface flex flex-col gap-2 px-3 py-3">
+        <span className="text-muted text-xs">レストタイマー（✓ で選んだ時間が始まります）</span>
+        <RestPicker compact />
+      </section>
+
       <div className="mt-4 flex flex-col gap-2">
         <Button size="lg" disabled={finishing} onClick={finish}>
           ワークアウト完了
@@ -346,27 +349,7 @@ export function WorkoutScreen() {
               onReps={(v) => stepValue("reps", v)}
             />
           )}
-          {workout.rest && (
-            <RestTimer
-              endsAt={workout.rest.endsAt}
-              totalSec={workout.rest.totalSec}
-              onAdd={(sec) =>
-                update((w) =>
-                  w.rest
-                    ? {
-                        ...w,
-                        rest: {
-                          endsAt: w.rest.endsAt + sec * 1000,
-                          totalSec: w.rest.totalSec + sec,
-                        },
-                      }
-                    : w,
-                )
-              }
-              onSkip={endRest}
-              onDone={endRest}
-            />
-          )}
+          <RestTimer />
         </div>
       </div>
 

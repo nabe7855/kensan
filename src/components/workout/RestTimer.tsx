@@ -1,61 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useNow, useRestTimer } from "@/components/providers/RestTimerProvider";
 import { Button } from "@/components/ui/button";
+import { formatRest, progress, remainingSec } from "@/lib/rest-timer";
 import { COLORS } from "@/lib/tokens";
-
-type Props = {
-  endsAt: number;
-  totalSec: number;
-  onAdd: (sec: number) => void;
-  onSkip: () => void;
-  onDone: () => void;
-};
 
 const R = 44;
 const C = 2 * Math.PI * R;
 
-function format(sec: number) {
-  const s = Math.max(0, Math.ceil(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function notifyRestOver() {
-  navigator.vibrate?.([200, 100, 200]);
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-  const options = { body: "次のセットへ", tag: "kensan-rest" };
-  // Android Chrome and installed PWAs only allow notifications from the service worker.
-  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-    void navigator.serviceWorker.ready.then((reg) => reg.showNotification("レスト終了", options));
-    return;
-  }
-  try {
-    new Notification("レスト終了", options);
-  } catch {
-    // No notification support in this context; vibration already fired.
-  }
-}
-
-export function RestTimer({ endsAt, totalSec, onAdd, onSkip, onDone }: Props) {
-  const [now, setNow] = useState(() => Date.now());
-  const fired = useRef(false);
-
-  useEffect(() => {
-    fired.current = false;
-    const t = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(t);
-  }, [endsAt]);
-
-  const left = (endsAt - now) / 1000;
-  useEffect(() => {
-    if (left <= 0 && !fired.current) {
-      fired.current = true;
-      notifyRestOver();
-      onDone();
-    }
-  }, [left, onDone]);
-
-  const progress = Math.min(1, Math.max(0, left / totalSec));
+/** Full rest timer (ring, +30s, skip) for the running countdown. Renders nothing when idle. */
+export function RestTimer() {
+  const { timer, add, stop } = useRestTimer();
+  const now = useNow(!!timer);
+  if (!timer) return null;
 
   return (
     <div className="surface flex items-center gap-3 px-3 py-3" role="timer" aria-live="off">
@@ -70,18 +27,18 @@ export function RestTimer({ endsAt, totalSec, onAdd, onSkip, onDone }: Props) {
             stroke={COLORS.accent}
             strokeWidth="6"
             strokeDasharray={C}
-            strokeDashoffset={C * (1 - progress)}
+            strokeDashoffset={C * (1 - progress(timer, now))}
             strokeLinecap="round"
           />
         </svg>
         <span className="num absolute inset-0 flex items-center justify-center text-3xl">
-          {format(left)}
+          {formatRest(remainingSec(timer, now))}
         </span>
       </div>
-      <Button size="lg" className="flex-1 text-xl" onClick={() => onAdd(30)}>
+      <Button size="lg" className="flex-1 text-xl" onClick={() => add(30)}>
         +30s
       </Button>
-      <Button size="lg" variant="secondary" className="flex-1" onClick={onSkip}>
+      <Button size="lg" variant="secondary" className="flex-1" onClick={stop}>
         スキップ
       </Button>
     </div>
