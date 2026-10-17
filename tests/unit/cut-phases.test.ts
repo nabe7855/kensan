@@ -201,3 +201,20 @@ describe("maintenance anchored to now", () => {
     expect(early!.kcal).toBe(ceiling);
   });
 });
+
+describe("storing the split", () => {
+  it("nests dates so the week-number check on the column never sees them", async () => {
+    const { decodeSplit, encodeSplit } = await import("@/lib/cut-phases");
+    const dates = { mid: "2026-07-01", late: "2026-08-20", peak: "2026-10-10" };
+    const stored = encodeSplit(dates)!;
+    expect(stored).toEqual({ dates });
+    expect(stored.mid).toBeUndefined();
+    expect(stored.peak).toBeUndefined();
+    expect(decodeSplit(stored)).toEqual(dates);
+    expect(encodeSplit({ early: 4, mid: 8, peak: 2 })).toEqual({ early: 4, mid: 8, peak: 2 });
+    expect(decodeSplit({ early: 4, mid: 8, peak: 2 })).toEqual({ early: 4, mid: 8, peak: 2 });
+    expect(decodeSplit(null)).toBeNull();
+    expect(decodeSplit({ early: "x" })).toBeNull();
+    expect(encodeSplit(null)).toBeNull();
+  });
+});

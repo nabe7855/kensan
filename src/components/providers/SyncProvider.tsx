@@ -2,13 +2,24 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { enqueue, flushOutbox, OUTBOX_CHANGED, pendingOps } from "@/lib/offline/outbox";
+import {
+  discardOp,
+  enqueue,
+  flushOutbox,
+  OUTBOX_CHANGED,
+  pendingOps,
+  retryAll,
+} from "@/lib/offline/outbox";
 import type { OutboxOp } from "@/lib/offline/db";
 import { getSupabase } from "@/lib/supabase/client";
 
 type Sync = {
   pending: number;
   failed: number;
+  /** Reset attempts on every queued write and send again. */
+  retry: () => Promise<void>;
+  /** Drop one queued write. */
+  discard: (id: number) => Promise<void>;
   /** Queue a write; resolves once it has been stored locally and a send was attempted. */
   write: (op: Omit<OutboxOp, "id" | "createdAt" | "attempts">) => Promise<void>;
 };
@@ -53,7 +64,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     [queryClient],
   );
 
-  return <SyncContext.Provider value={{ pending, failed, write }}>{children}</SyncContext.Provider>;
+  const retry = useCallback(async () => {
+    const sent = await retryAll(getSupabase());
+    if (sent > 0) await queryClient.invalidateQueries();
+  }, [queryClient]);
+  const discard = useCallback(async (id: number) => {
+    await discardOp(id);
+  }, []);
+
+  return (
+    <SyncContext.Provider value={{ pending, failed, write, retry, discard }}>
+      {children}
+    </SyncContext.Provider>
+  );
 }
 
 export function useSync(): Sync {

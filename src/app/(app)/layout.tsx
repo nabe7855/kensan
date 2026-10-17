@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
 import { KeyboardWatcher } from "@/components/shell/KeyboardWatcher";
 import { StatusStrip } from "@/components/shell/StatusStrip";
-import type { PhaseDates, PhaseSplit } from "@/lib/cut-phases";
+import { decodeSplit } from "@/lib/cut-phases";
 import { getCurrentProfile } from "@/lib/profile";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -35,9 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           trainingPhase: profile.training_phase as TrainingPhase,
           plateauAlerts: profile.plateau_alerts,
           mutedExercises: profile.muted_exercises,
-          prep: prep
-            ? { ...prep, phase_split: prep.phase_split as PhaseSplit | PhaseDates | null }
-            : null,
+          prep: prep ? { ...prep, phase_split: decodeSplit(prep.phase_split) } : null,
         }}
       >
         <SyncProvider>

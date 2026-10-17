@@ -10,6 +10,7 @@ import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import {
   datesValid,
+  encodeSplit,
   daysLeftInPhase,
   initialDates,
   lengthLabel,
@@ -245,7 +246,10 @@ export function PhasePlan() {
       table: "preps",
       kind: "update",
       match: { id: prep!.id, user_id: userId },
-      payload: { phase_split: value, ...(draftStart ? { start_date: draftStart } : {}) },
+      payload: {
+        phase_split: encodeSplit(value),
+        ...(draftStart ? { start_date: draftStart } : {}),
+      },
     });
     router.refresh();
   }
