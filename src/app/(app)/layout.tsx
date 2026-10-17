@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AppDataProvider } from "@/components/providers/AppDataProvider";
+import { AppDataProvider, type TrainingPhase } from "@/components/providers/AppDataProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { RestTimerProvider } from "@/components/providers/RestTimerProvider";
 import { SyncProvider } from "@/components/providers/SyncProvider";
@@ -29,6 +29,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           displayName: profile.display_name ?? "",
           trackLibido: profile.track_libido,
           mealSlots: profile.meal_slots,
+          showRir: profile.show_rir,
+          trainingPhase: profile.training_phase as TrainingPhase,
+          plateauAlerts: profile.plateau_alerts,
           prep: prep ?? null,
         }}
       >

@@ -12,7 +12,9 @@ import { addDaysISO, todayISO } from "@/lib/prep";
 import { useCheckins } from "@/lib/queries/checkins";
 import { useDayMeals, useDayOverride, useTargets } from "@/lib/queries/nutrition";
 import { jstMidnight, useSessions } from "@/lib/queries/training";
+import { averageInterval, formatRest, setIntervals } from "@/lib/rest-timer";
 import { exercisesOf, partsText, sessionParts, sessionVolume } from "@/lib/sessions";
+import { SET_TYPES } from "@/lib/strength";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { cn } from "@/lib/utils";
 
@@ -154,25 +156,40 @@ export function DayReport({ date }: { date: string }) {
                         kg ・ {working}セット
                       </p>
                       <ul className="flex flex-col gap-2">
-                        {exercisesOf(s).map((e) => (
-                          <li key={e.exerciseId}>
-                            <p className="text-base">{e.name}</p>
-                            <p className="num text-muted flex flex-wrap gap-x-3 text-sm">
-                              {e.sets.map((x, i) => (
-                                <span
-                                  key={i}
-                                  className={cn(
-                                    x.set_type === "warmup" && "text-ghost",
-                                    x.is_pr && "text-accent",
-                                  )}
-                                >
-                                  {x.weight_kg ?? "—"}×{x.reps ?? "—"}
-                                  {x.is_pr && " PR"}
-                                </span>
-                              ))}
-                            </p>
-                          </li>
-                        ))}
+                        {exercisesOf(s).map((e) => {
+                          const rest = averageInterval(setIntervals(e.sets.map((x) => x.done_at)));
+                          return (
+                            <li key={e.exerciseId}>
+                              <p className="flex items-baseline justify-between gap-2 text-base">
+                                {e.name}
+                                {rest !== null && (
+                                  <span className="num text-ghost text-xs">
+                                    セット間 平均 {formatRest(rest)}
+                                  </span>
+                                )}
+                              </p>
+                              <p className="num text-muted flex flex-wrap gap-x-3 text-sm">
+                                {e.sets.map((x, i) => (
+                                  <span
+                                    key={i}
+                                    className={cn(
+                                      x.set_type === "warmup" && "text-ghost",
+                                      x.is_pr && "text-accent",
+                                    )}
+                                  >
+                                    {x.weight_kg ?? "—"}×{x.reps ?? "—"}
+                                    {x.set_type !== "normal" && x.set_type !== "warmup" && (
+                                      <span className="text-accent ml-0.5 text-[10px]">
+                                        {SET_TYPES.find((t) => t.key === x.set_type)?.short}
+                                      </span>
+                                    )}
+                                    {x.is_pr && " PR"}
+                                  </span>
+                                ))}
+                              </p>
+                            </li>
+                          );
+                        })}
                       </ul>
                       {[s.pump, s.soreness, s.joint, s.load_feel].some((v) => v != null) && (
                         <p className="text-muted text-xs">

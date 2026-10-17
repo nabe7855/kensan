@@ -49,3 +49,25 @@ export function presetLabel(sec: number): string {
   if (m === 0) return `${s}秒`;
   return s === 0 ? `${m}分` : `${m}分${s}秒`;
 }
+
+/**
+ * Seconds from the previous completed set to each set (completion to completion), or null.
+ * Includes the set itself, so it reads as "rest plus the set", not pure rest.
+ */
+export function setIntervals(doneAts: (string | null)[]): (number | null)[] {
+  let prev: number | null = null;
+  return doneAts.map((d) => {
+    if (!d) return null;
+    const t = new Date(d).getTime();
+    const gap = prev !== null && t > prev ? Math.round((t - prev) / 1000) : null;
+    prev = t;
+    // Longer than 15 minutes is a break or a forgotten tap, not rest.
+    return gap !== null && gap <= 900 ? gap : null;
+  });
+}
+
+/** Average of the known intervals, or null. */
+export function averageInterval(intervals: (number | null)[]): number | null {
+  const known = intervals.filter((n): n is number => n !== null);
+  return known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null;
+}

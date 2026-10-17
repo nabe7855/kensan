@@ -4,6 +4,7 @@ import { EmailForm } from "@/components/settings/EmailForm";
 import { ExportButtons } from "@/components/settings/ExportButtons";
 import { LogoutButton } from "@/components/settings/LogoutButton";
 import { ProfileForm } from "@/components/settings/ProfileForm";
+import { TrainingSettings } from "@/components/settings/TrainingSettings";
 import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { Button } from "@/components/ui/button";
 import { daysUntilContest, todayISO } from "@/lib/prep";
@@ -33,6 +34,11 @@ export default async function SettingsPage() {
           unitPref={profile?.unit_pref ?? "kg"}
           trackLibido={profile?.track_libido ?? true}
         />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-muted text-xs">トレーニング</h2>
+        <TrainingSettings />
       </section>
 
       <section className="flex flex-col gap-2">

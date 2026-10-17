@@ -51,7 +51,7 @@ const num = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? nul
 
 export function WorkoutScreen() {
   const router = useRouter();
-  const { userId } = useAppData();
+  const { userId, showRir } = useAppData();
   const { write } = useSync();
   const { workout, loaded, update, clear } = useActiveWorkout();
   const { data: exercises = [] } = useExercises();
@@ -284,6 +284,7 @@ export function WorkoutScreen() {
             onChange={patchSet}
             onToggle={toggle}
             onFocusRow={setFocusRow}
+            showRir={showRir}
           />
 
           <div className="flex gap-2">

@@ -76,6 +76,7 @@ describe("detectPRs", () => {
 describe("nextSetType", () => {
   it("cycles through all types", () => {
     expect(nextSetType("normal")).toBe("warmup");
-    expect(nextSetType("failure")).toBe("normal");
+    expect(nextSetType("failure")).toBe("rest_pause");
+    expect(nextSetType("superset")).toBe("normal");
   });
 });

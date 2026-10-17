@@ -1,9 +1,27 @@
 export const SET_TYPES = [
-  { key: "normal", short: "", label: "通常" },
-  { key: "warmup", short: "W", label: "ウォームアップ" },
-  { key: "drop", short: "D", label: "ドロップ" },
-  { key: "superset", short: "S", label: "スーパーセット" },
-  { key: "failure", short: "F", label: "失敗" },
+  { key: "normal", short: "", label: "通常", note: "限界まで、または目標回数で終える通常のセット" },
+  {
+    key: "warmup",
+    short: "W",
+    label: "ウォームアップ",
+    note: "記録に残すが、ボリュームや PR には数えない",
+  },
+  {
+    key: "failure",
+    short: "F",
+    label: "限界",
+    note: "フォームを保ったまま、もう 1 回も上がらないところまで",
+  },
+  {
+    key: "rest_pause",
+    short: "RP",
+    label: "レストポーズ",
+    note: "限界後に 10〜20 秒休み、同じ重量で数回追加",
+  },
+  { key: "drop", short: "D", label: "ドロップ", note: "限界後すぐに重量を下げて続ける" },
+  { key: "forced", short: "FR", label: "フォースドレップ", note: "限界後、補助を受けて数回追加" },
+  { key: "partial", short: "P", label: "パーシャル", note: "限界後、可動域を狭めて追加" },
+  { key: "superset", short: "S", label: "スーパーセット", note: "別の種目と休まず連続で行う" },
 ] as const;
 
 export type SetType = (typeof SET_TYPES)[number]["key"];
