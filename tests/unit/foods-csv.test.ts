@@ -49,6 +49,7 @@ describe("parseMextFoods", () => {
       fiber_g: 0,
       sodium_mg: 42,
       food_group: 11,
+      aliases: "鶏 鶏肉 チキン 鶏むね 鶏胸 むね肉 胸肉",
     });
     expect(foods[1]!.food_group).toBe(1);
     expect(foods[1]!.carb_g).toBe(37.1);
@@ -69,9 +70,10 @@ describe("parseMextFoods", () => {
         fiber_g: null,
         sodium_mg: null,
         food_group: 1,
+        aliases: "ご飯",
       },
     ]);
-    expect(sql).toContain("'O''Brien めし', 1, 0, 0, 0, null, null, 1, true");
+    expect(sql).toContain("'O''Brien めし', 1, 0, 0, 0, null, null, 1, 'ご飯', true");
     expect(sql).toContain("where not exists");
   });
 });

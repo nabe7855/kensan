@@ -198,6 +198,11 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
         {browsing && search.isFetched && results.length === 0 && (
           <li className="text-muted py-6 text-sm">見つかりません。マイ食品として登録できます</li>
         )}
+        {browsing && (
+          <li className="text-ghost py-3 text-[10px] leading-relaxed">
+            食品データ：文部科学省「日本食品標準成分表（八訂）増補2023年」。料理・一部の食品は目安値です
+          </li>
+        )}
       </ul>
       <div className="border-border border-t py-3">
         {creating ? (
