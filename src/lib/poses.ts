@@ -79,8 +79,22 @@ export function fitWithin(
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
+/** Formats to try when saving, smallest first. Safari may not encode WebP and falls back to JPEG. */
+export const ENCODINGS = [
+  { type: "image/webp", ext: "webp", quality: 0.8 },
+  { type: "image/jpeg", ext: "jpg", quality: 0.85 },
+] as const;
+
+export type EncodedType = (typeof ENCODINGS)[number]["type"];
+
+/** The first format the browser actually produced (a canvas silently returns PNG when it can't). */
+export function pickEncoding(producedType: string) {
+  return ENCODINGS.find((e) => e.type === producedType) ?? null;
+}
+
 /** Storage path: one folder per user, as the bucket policies require. */
-export const photoPath = (userId: string, id: string) => `${userId}/${id}.jpg`;
+export const photoPath = (userId: string, id: string, ext: string = "webp") =>
+  `${userId}/${id}.${ext}`;
 
 /** "12日差" between two dates, for the compare view. */
 export function daysApart(a: string, b: string): string {

@@ -3,12 +3,20 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
-import { fitWithin, photoPath, type PosePhoto } from "@/lib/poses";
+import { ENCODINGS, fitWithin, photoPath, pickEncoding, type PosePhoto } from "@/lib/poses";
 import { BUCKET, photoKeys } from "@/lib/queries/photos";
 import { getSupabase } from "@/lib/supabase/client";
 
-/** Downscale to at most 1600px and re-encode as JPEG (also drops location metadata). */
-export async function toJpeg(file: File): Promise<{ blob: Blob; width: number; height: number }> {
+const encode = (canvas: HTMLCanvasElement, type: string, quality: number) =>
+  new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+
+/**
+ * Downscale to at most 1600px and re-encode, WebP first and JPEG where the browser can't
+ * write WebP. Re-encoding also drops location and other metadata.
+ */
+export async function compress(
+  file: File,
+): Promise<{ blob: Blob; width: number; height: number; type: string; ext: string }> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   const { width, height } = fitWithin(bitmap.width, bitmap.height);
   const canvas = document.createElement("canvas");
@@ -16,10 +24,12 @@ export async function toJpeg(file: File): Promise<{ blob: Blob; width: number; h
   canvas.height = height;
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode failed"))), "image/jpeg", 0.85),
-  );
-  return { blob, width, height };
+  for (const e of ENCODINGS) {
+    const blob = await encode(canvas, e.type, e.quality);
+    const got = blob && pickEncoding(blob.type);
+    if (blob && got?.type === e.type) return { blob, width, height, type: got.type, ext: got.ext };
+  }
+  throw new Error("encode failed");
 }
 
 export type PhotoMeta = { taken_on: string; pose: string; tags: string[]; note: string | null };
@@ -31,13 +41,13 @@ export function usePhotoActions() {
 
   const upload = useCallback(
     async (file: File, meta: PhotoMeta) => {
-      const { blob, width, height } = await toJpeg(file);
+      const { blob, width, height, type, ext } = await compress(file);
       const id = crypto.randomUUID();
-      const path = photoPath(userId, id);
+      const path = photoPath(userId, id, ext);
       const supabase = getSupabase();
       const up = await supabase.storage
         .from(BUCKET)
-        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        .upload(path, blob, { contentType: type, upsert: false });
       if (up.error) throw up.error;
       const row = { id, user_id: userId, path, width, height, ...meta };
       const ins = await supabase.from("pose_photos").insert(row);
