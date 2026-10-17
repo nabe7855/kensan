@@ -2,10 +2,11 @@
 
 import { MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DateNav } from "@/components/ui/date-nav";
-import { fillReason, suggestFill } from "@/lib/fill";
+import { mealsLeft, perMealReason, perMealTarget, rankSets, suggestFill } from "@/lib/fill";
+import { kvGet, kvSet } from "@/lib/offline/db";
 import { dayTotals, mealOrder, nextMealName } from "@/lib/meal-plan";
 import { dayTypeFor, subtractMacros, sumMacros, targetFor, type DayType } from "@/lib/nutrition";
 import { todayISO } from "@/lib/prep";
@@ -48,6 +49,15 @@ export function NutritionScreen() {
   const [editing, setEditing] = useState<LogItem | null>(null);
   const [editingTargets, setEditingTargets] = useState(false);
   const [showAllFills, setShowAllFills] = useState(false);
+  const [mealsPerDay, setMealsPerDayState] = useState(3);
+  useEffect(() => {
+    void kvGet<number>("mealsPerDay").then((n) => n && setMealsPerDayState(n));
+  }, []);
+  const setMealsPerDay = (n: number) => {
+    const v = Math.min(8, Math.max(1, n));
+    setMealsPerDayState(v);
+    void kvSet("mealsPerDay", v);
+  };
   const [notice, setNotice] = useState<string | null>(null);
 
   const meals = useDayMeals(date);
@@ -63,11 +73,20 @@ export function NutritionScreen() {
   const { eaten, planned } = useMemo(() => dayTotals(meals.data ?? []), [meals.data]);
   // Fill suggestions cover what is left after everything planned is eaten.
   const remaining = target ? subtractMacros(target, sumMacros([eaten, planned])) : null;
+  const withFood = (meals.data ?? []).filter((m) => m.items.length > 0).length;
+  const left = mealsLeft(mealsPerDay, withFood);
+  const perMeal = remaining ? perMealTarget(remaining, left) : null;
   const fills = useMemo(
-    () => (remaining && frequent.data ? suggestFill(remaining, frequent.data) : []),
+    () => (perMeal && frequent.data ? suggestFill(perMeal, frequent.data) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [remaining?.protein_g, remaining?.fat_g, remaining?.carb_g, frequent.data],
+    [perMeal?.protein_g, perMeal?.fat_g, perMeal?.carb_g, frequent.data],
   );
+  const setFits = useMemo(
+    () => (perMeal && templates.data ? rankSets(perMeal, templates.data) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [perMeal?.protein_g, perMeal?.fat_g, perMeal?.carb_g, templates.data],
+  );
+  const hasRoom = perMeal !== null && perMeal.protein_g + perMeal.carb_g + perMeal.fat_g >= 10;
 
   const slots = mealOrder(meals.data ?? [], pending);
   const slot = selectedSlot && slots.includes(selectedSlot) ? selectedSlot : slots.at(-1)!;
@@ -213,36 +232,102 @@ export function NutritionScreen() {
         ＋ 次の食事を追加（{nextMealName(slots)}）
       </button>
 
-      {fills.length > 0 && (
-        <section className="surface border-l-accent flex flex-col gap-2 border-l-2 px-3 py-3">
-          <h2 className="text-base font-bold">残りを埋める</h2>
-          {(showAllFills ? fills : fills.slice(0, 1)).map((f, idx) => (
-            <div key={idx} className="flex items-center justify-between gap-2">
-              <p className="num text-base">
-                {f.items.map((it) => `${it.food.name} ${it.grams}g`).join(" + ")}
-              </p>
-              <Button
-                variant="secondary"
-                className="h-10 shrink-0 px-3 text-sm"
-                onClick={async () => {
-                  await actions.addItems(slot, f.items);
-                  flash(`${slot}に追加した`);
-                }}
+      {hasRoom && perMeal && remaining && (
+        <section className="surface border-l-accent flex flex-col gap-3 border-l-2 px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold">次の 1 食の目安</h2>
+            <div className="flex items-center gap-1 text-sm">
+              <span className="text-muted">1日</span>
+              <button
+                type="button"
+                aria-label="食事回数を減らす"
+                onClick={() => setMealsPerDay(mealsPerDay - 1)}
+                className="border-border size-10 rounded-md border"
               >
-                {slot}に追加
-              </Button>
+                −
+              </button>
+              <span className="num w-6 text-center text-lg">{mealsPerDay}</span>
+              <button
+                type="button"
+                aria-label="食事回数を増やす"
+                onClick={() => setMealsPerDay(mealsPerDay + 1)}
+                className="border-border size-10 rounded-md border"
+              >
+                ＋
+              </button>
+              <span className="text-muted">食</span>
             </div>
-          ))}
-          <p className="text-ghost text-xs leading-relaxed">{fillReason(remaining!, fills[0]!)}</p>
-          {fills.length > 1 && (
-            <button
-              type="button"
-              onClick={() => setShowAllFills((v) => !v)}
-              className="text-ghost self-start text-xs underline underline-offset-4"
-            >
-              {showAllFills ? "候補を閉じる" : `他の候補（${fills.length - 1}）`}
-            </button>
+          </div>
+          <p className="num text-lg">
+            P{Math.round(perMeal.protein_g)}・F{Math.round(perMeal.fat_g)}・C
+            {Math.round(perMeal.carb_g)}g
+            <span className="text-muted ml-2 text-sm">{Math.round(perMeal.kcal)}kcal</span>
+            <span className="text-ghost ml-2 text-xs">あと{left}食</span>
+          </p>
+
+          {setFits.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-muted text-xs">マイ定食から</p>
+              {setFits.map(({ set, provides }) => (
+                <div key={set.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-base">{set.name}</p>
+                    <p className="num text-ghost text-xs">
+                      P{Math.round(provides.protein_g)}・F{Math.round(provides.fat_g)}・C
+                      {Math.round(provides.carb_g)}g
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="h-10 shrink-0 px-3 text-sm"
+                    onClick={async () => {
+                      await actions.addItems(
+                        slot,
+                        set.items.map((i) => ({ food: i.food, grams: i.grams })),
+                        { planned: true },
+                      );
+                      flash(`${set.name} を${slot}の予定に入れた`);
+                    }}
+                  >
+                    {slot}に予定
+                  </Button>
+                </div>
+              ))}
+            </div>
           )}
+
+          {fills.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-muted text-xs">よく使う食品で組むなら</p>
+              {(showAllFills ? fills : fills.slice(0, 1)).map((f, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-2">
+                  <p className="num text-base">
+                    {f.items.map((it) => `${it.food.name} ${it.grams}g`).join(" + ")}
+                  </p>
+                  <Button
+                    variant="secondary"
+                    className="h-10 shrink-0 px-3 text-sm"
+                    onClick={async () => {
+                      await actions.addItems(slot, f.items, { planned: true });
+                      flash(`${slot}の予定に入れた`);
+                    }}
+                  >
+                    {slot}に予定
+                  </Button>
+                </div>
+              ))}
+              {fills.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllFills((v) => !v)}
+                  className="text-ghost self-start text-xs underline underline-offset-4"
+                >
+                  {showAllFills ? "候補を閉じる" : `他の候補（${fills.length - 1}）`}
+                </button>
+              )}
+            </div>
+          )}
+          <p className="text-ghost text-xs leading-relaxed">{perMealReason(remaining, left)}</p>
         </section>
       )}
 
