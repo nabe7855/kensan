@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,14 @@ import { addDaysISO, todayISO } from "@/lib/prep";
 import { useCheckins } from "@/lib/queries/checkins";
 import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
+import { headlineWeight } from "@/lib/weight-stats";
 import { ContestCard } from "./ContestCard";
 import { NutritionSummary } from "./NutritionSummary";
 import { PhaseCard } from "./PhaseCard";
 import { TodayTrainingCard } from "./TodayTrainingCard";
 import { WeightChart } from "./WeightChart";
+
+const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
 
 const DIRECTION = {
   down: { Icon: ArrowDown, label: "7日前より低い" },
@@ -43,42 +46,50 @@ export function HomeScreen() {
   const todayCheckin = data.find((c) => c.date === today) ?? null;
   const showWhy = !!prep?.why_text && shouldShowWhy(data, today, trackLibido);
   const DirectionIcon = direction ? DIRECTION[direction] : null;
+  const headline = headlineWeight(entries, today);
 
   return (
     <div className="flex flex-col gap-3">
-      {latest ? (
-        <section className="surface flex items-end justify-between px-4 pt-3 pb-4">
-          <div>
-            <p className="text-muted text-sm">週平均</p>
-            <p className="flex items-baseline gap-2">
-              <span className="num text-[80px] leading-none">{latest.trendKg.toFixed(1)}</span>
-              <span className="num text-muted text-2xl">kg</span>
-              {DirectionIcon && (
-                <DirectionIcon.Icon
-                  aria-label={DirectionIcon.label}
-                  className="text-muted size-6 self-center"
-                />
-              )}
-            </p>
+      {headline && latest ? (
+        <Link
+          href="/weight"
+          aria-label="体重の詳細を開く"
+          className="surface flex flex-col gap-1 px-4 pt-3 pb-2 active:opacity-90"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="text-muted text-sm">
+                {headline.isToday ? "今朝" : `最新（${md(headline.date)}）`}
+              </span>
+              <span className="flex items-baseline gap-1.5">
+                <span className="num text-[88px] leading-none tracking-tight">
+                  {headline.kg.toFixed(1)}
+                </span>
+                <span className="num text-muted text-2xl">kg</span>
+              </span>
+            </div>
+            <div className="flex flex-col items-end gap-1 pt-1">
+              <span className="text-muted text-xs">週平均</span>
+              <span className="flex items-center gap-1">
+                <span className="num text-2xl leading-none">{latest.trendKg.toFixed(1)}</span>
+                {DirectionIcon && (
+                  <DirectionIcon.Icon
+                    aria-label={DirectionIcon.label}
+                    className="text-muted size-4"
+                  />
+                )}
+              </span>
+              <span className="text-ghost flex items-center text-xs">
+                詳細
+                <ChevronRight aria-hidden className="size-3.5" />
+              </span>
+            </div>
           </div>
-          <div className="border-border border-l pb-1 pl-4 text-right">
-            <p className="text-muted text-xs">
-              {todayCheckin?.weight_kg != null ? "今朝" : "最新"}
-            </p>
-            <p className="num text-muted text-3xl leading-none">
-              {(todayCheckin?.weight_kg ?? entries.at(-1)?.weightKg)?.toFixed(1)}
-            </p>
-          </div>
-        </section>
+          <WeightChart points={weightChartPoints(entries, today, prep)} height="h-36" />
+        </Link>
       ) : (
         <section className="surface px-4 py-5">
-          <p className="text-sm">体重を記録すると、7日平均のトレンドが表示されます</p>
-        </section>
-      )}
-
-      {latest && (
-        <section className="surface px-2 pt-3 pb-2">
-          <WeightChart points={weightChartPoints(entries, today, prep)} />
+          <p className="text-sm">体重を記録すると、ここに大きく表示されます</p>
         </section>
       )}
 

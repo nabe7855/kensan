@@ -45,7 +45,7 @@ export function PartSetsCard({ monday, today }: { monday: string; today: string 
                   />
                   <span
                     className={cn(
-                      "absolute inset-y-0 left-0 rounded-full",
+                      "animate-grow-x absolute inset-y-0 left-0 origin-left rounded-full",
                       status === "above" ? "bg-warn" : "bg-accent",
                       status === "below" && "bg-accent/50",
                     )}
