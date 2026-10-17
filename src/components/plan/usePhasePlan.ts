@@ -14,6 +14,7 @@ import { kvDelete, kvGet, kvSet } from "@/lib/offline/db";
 import { addDaysISO, todayISO } from "@/lib/prep";
 import { useCheckins } from "@/lib/queries/checkins";
 import { useDailyIntake } from "@/lib/queries/nutrition";
+import { weightTrend } from "@/lib/trend";
 
 const KEY = "maintenanceKcal";
 
@@ -47,6 +48,14 @@ export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null, draftS
     );
   }, [checkins.data, intake.data]);
 
+  // Today's 7-day average weight: where a logged or typed-in maintenance figure applies.
+  const currentKg = useMemo(() => {
+    const entries = (checkins.data ?? [])
+      .filter((c) => c.weight_kg != null)
+      .map((c) => ({ date: c.date, weightKg: c.weight_kg! }));
+    return weightTrend(entries).at(-1)?.trendKg ?? null;
+  }, [checkins.data]);
+
   const source: MaintenanceSource = manual ? "manual" : estimated ? "records" : "weight";
   const maintenance =
     manual ?? estimated ?? (prep ? maintenanceFromWeight(prep.start_weight_kg) : null);
@@ -61,11 +70,13 @@ export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null, draftS
               startKg: prep.start_weight_kg,
               targetKg: prep.target_weight_kg,
               maintenanceKcal: maintenance,
+              // The bodyweight fallback is maintenance at the start weight; the others are "now".
+              anchor: source !== "weight" && currentKg ? { kg: currentKg, date: today } : null,
             },
             split,
           )
         : [],
-    [prep, maintenance, split, draftStart],
+    [prep, maintenance, split, draftStart, source, currentKg, today],
   );
 
   return {

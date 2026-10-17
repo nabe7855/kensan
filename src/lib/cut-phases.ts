@@ -33,8 +33,14 @@ export type PlanInput = {
   contestDate: string;
   startKg: number;
   targetKg: number;
-  /** Estimated maintenance kcal at the start weight. */
+  /** Maintenance kcal at the anchor (by default, at the start weight). */
   maintenanceKcal: number;
+  /**
+   * Where the maintenance figure was measured: the body weight then and the date. An estimate
+   * from recent logs is "maintenance now", already reflecting the weight lost and the adaptation
+   * so far, so later phases are only discounted from this point on. Defaults to the start.
+   */
+  anchor?: { kg: number; date: string } | null;
 };
 
 const KCAL_PER_KG = 7700;
@@ -223,10 +229,27 @@ export function planPhases(input: PlanInput, split?: PhaseSplit | PhaseDates | n
     0,
   );
 
+  // Phase bounds first, to find the phase the maintenance figure belongs to.
+  const bounds: { key: PhaseKey; start: string; end: string }[] = [];
+  for (let d = startDate, i = 0; i < keys.length; i++) {
+    const key = keys[i]!;
+    const end =
+      i === keys.length - 1
+        ? addDaysISO(contestDate, -1)
+        : addDaysISO(d, Math.round(weeks[key]! * 7) - 1);
+    bounds.push({ key, start: d, end });
+    d = addDaysISO(end, 1);
+  }
+  const anchor = input.anchor ?? { kg: startKg, date: startDate };
+  const anchorKey =
+    bounds.find((b) => anchor.date >= b.start && anchor.date <= b.end)?.key ??
+    (anchor.date < startDate ? keys[0]! : keys.at(-1)!);
+  const anchorIndex = keys.indexOf(anchorKey);
+
   const phases: Phase[] = [];
   let date = startDate;
   let kg = startKg;
-  for (const key of keys) {
+  for (const [index, key] of keys.entries()) {
     const w = weeks[key]!;
     const isLast = key === keys.at(-1);
     const end = isLast ? addDaysISO(contestDate, -1) : addDaysISO(date, Math.round(w * 7) - 1);
@@ -234,7 +257,10 @@ export function planPhases(input: PlanInput, split?: PhaseSplit | PhaseDates | n
     const endKg = kg - phaseLoss;
     const midKg = (kg + endKg) / 2;
     const weeklyLossKg = w > 0 ? phaseLoss / w : 0;
-    const maintenance = maintenanceKcal * (midKg / startKg) * ADAPT[key];
+    // Discount only what happens after the anchor; earlier phases never exceed it.
+    const weightRatio = index > anchorIndex ? midKg / anchor.kg : Math.min(1, midKg / anchor.kg);
+    const adaptRatio = Math.min(1, ADAPT[key] / ADAPT[anchorKey]);
+    const maintenance = maintenanceKcal * weightRatio * adaptRatio;
     const floor = midKg * MIN_KCAL_PER_KG;
     const prev = phases.at(-1);
     let kcal =
