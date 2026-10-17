@@ -29,8 +29,8 @@ const md = (d: string) => d.slice(5).replace("-", "/");
 const kcalFmt = (n: number) => n.toLocaleString("ja-JP");
 
 const SOURCE_TEXT = {
-  manual: "手入力の値",
-  records: "直近 3 週の食事と体重の記録から推定",
+  manual: "手入力の値（今の体重での維持カロリーとして扱います）",
+  records: "直近 3 週の食事と体重の記録から推定した、今の体重での値",
   weight:
     "体重 ×31kcal の目安。食事と体重の記録が 10 日分ほど貯まると記録からの推定に切り替わります",
 } as const;
@@ -418,7 +418,7 @@ export function PhasePlan() {
           </div>
           <p className="text-ghost text-xs leading-relaxed">
             {SOURCE_TEXT[source]}
-            。各フェーズの摂取はここから体重の減り方と代謝の低下を見込んで計算しています
+            。各フェーズの摂取は、ここから先の体重の減り方と代謝の低下を見込んで計算しています（すでに減った分は推定に含まれているので、二重に差し引きません）
           </p>
           {source === "manual" && (
             <button

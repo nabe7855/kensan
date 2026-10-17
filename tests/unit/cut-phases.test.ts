@@ -171,3 +171,33 @@ describe("phase dates from the calendar", () => {
     expect(isPhaseDates({ mid: "2026-07-01", late: "2026-08-20", peak: "2026-10-10" })).toBe(true);
   });
 });
+
+describe("maintenance anchored to now", () => {
+  // 8 weeks into the 20-week cut (mid phase), 76.5 kg, logs say maintenance is 2,600 kcal now.
+  const now = { ...input, maintenanceKcal: 2600 };
+  const anchor = { kg: 76.5, date: "2026-07-27" };
+
+  it("matches the old result when anchored at the start", async () => {
+    const { planPhases } = await import("@/lib/cut-phases");
+    const atStart = planPhases({ ...input, anchor: { kg: input.startKg, date: input.startDate } });
+    expect(atStart).toEqual(planPhases(input));
+  });
+
+  it("does not take the weight lost and the adaptation so far off twice", async () => {
+    const { planPhases } = await import("@/lib/cut-phases");
+    const doubled = planPhases(now);
+    const anchored = planPhases({ ...now, anchor });
+    const kcal = (list: typeof doubled, k: string) => list.find((p) => p.key === k)!.kcal;
+    expect(kcal(anchored, "mid")).toBeGreaterThan(kcal(doubled, "mid"));
+    expect(kcal(anchored, "late")).toBeGreaterThan(kcal(doubled, "late"));
+    // Later phases still go down from here.
+    expect(kcal(anchored, "late")).toBeLessThan(kcal(anchored, "mid"));
+  });
+
+  it("never puts a phase already behind us above the maintenance measured now", async () => {
+    const { planPhases } = await import("@/lib/cut-phases");
+    const [early] = planPhases({ ...now, anchor });
+    const ceiling = Math.round((2600 - (early!.weeklyLossKg * 7700) / 7) / 50) * 50;
+    expect(early!.kcal).toBe(ceiling);
+  });
+});
