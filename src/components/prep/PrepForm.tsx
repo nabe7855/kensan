@@ -80,7 +80,7 @@ function WeightCard({
 
 export function PrepForm({ today, defaultStartKg, skipHref, initial, next }: Props) {
   const [state, action, pending] = useActionState<FormState, FormData>(savePrep, {});
-  const startDate = initial?.start_date ?? today;
+  const [startDate, setStartDate] = useState(initial?.start_date ?? today);
   const [contestName, setContestName] = useState(initial?.contest_name ?? "");
   const [contestDate, setContestDate] = useState(initial?.contest_date ?? "");
   const [startKg, setStartKg] = useState(
@@ -127,6 +127,22 @@ export function PrepForm({ today, defaultStartKg, skipHref, initial, next }: Pro
           onChange={(e) => setContestName(e.target.value)}
           placeholder="FWJ 東京 2027"
           className="text-fg placeholder:text-ghost min-w-0 flex-1 bg-transparent text-right text-base focus:outline-none"
+        />
+      </label>
+
+      <label className="surface flex h-14 items-center justify-between gap-4 px-4">
+        <span className="flex shrink-0 flex-col">
+          <span className="text-sm">減量開始日</span>
+          <span className="text-ghost text-[11px]">すでに始めていれば過去の日付に</span>
+        </span>
+        <input
+          name="start_date"
+          type="date"
+          required
+          max={today}
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value || today)}
+          className="num text-fg min-w-0 flex-1 bg-transparent text-right text-lg [color-scheme:dark] focus:outline-none"
         />
       </label>
 
