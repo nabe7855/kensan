@@ -16,12 +16,13 @@ describe("mondayOf", () => {
 });
 
 describe("heatLevel / conditionHeatmap", () => {
-  it("grades on the wellness scale (hunger reversed)", () => {
+  it("grades 1 (very low) to 5 (good) for every item", () => {
     expect(heatLevel("sleep", 1)).toBe("verylow");
     expect(heatLevel("sleep", 2)).toBe("low");
     expect(heatLevel("sleep", 3)).toBe("neutral");
     expect(heatLevel("sleep", 5)).toBe("good");
-    expect(heatLevel("hunger", 5)).toBe("verylow");
+    expect(heatLevel("hunger", 1)).toBe("verylow");
+    expect(heatLevel("hunger", 5)).toBe("good");
     expect(heatLevel("mood", null)).toBe("none");
   });
 

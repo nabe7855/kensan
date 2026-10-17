@@ -9,24 +9,24 @@ import {
 } from "@/lib/condition";
 
 describe("wellness / isConcerning", () => {
-  it("reverses hunger only", () => {
-    expect(wellness("hunger", 5)).toBe(1);
+  it("uses 5 = good for every item, hunger included", () => {
+    expect(wellness("hunger", 5)).toBe(5);
     expect(wellness("sleep", 5)).toBe(5);
   });
 
-  it("flags low wellness, including high hunger", () => {
+  it("flags 1 and 2 as low for every item", () => {
     expect(isConcerning("energy", 2)).toBe(true);
     expect(isConcerning("energy", 3)).toBe(false);
-    expect(isConcerning("hunger", 4)).toBe(true);
-    expect(isConcerning("hunger", 2)).toBe(false);
+    expect(isConcerning("hunger", 2)).toBe(true);
+    expect(isConcerning("hunger", 4)).toBe(false);
     expect(isConcerning("mood", null)).toBe(false);
   });
 });
 
 describe("dailyWellness", () => {
   it("averages recorded items on the wellness scale", () => {
-    // hunger 4 -> 2, sleep 3, mood 3, energy 2, libido 2 => 12 / 5
-    expect(dailyWellness({ hunger: 4, sleep: 3, mood: 3, energy: 2, libido: 2 })).toBeCloseTo(2.4);
+    // hunger 2, sleep 3, mood 3, energy 2, libido 2 => 12 / 5
+    expect(dailyWellness({ hunger: 2, sleep: 3, mood: 3, energy: 2, libido: 2 })).toBeCloseTo(2.4);
   });
 
   it("can exclude libido and skips missing items", () => {
