@@ -171,7 +171,11 @@ export function useFoodSearch(q: string, filter: FoodFilter = { kind: "all" }) {
     staleTime: 5 * 60_000,
     queryFn: async () => {
       let req = getSupabase().from("foods").select(FOOD_COLUMNS);
-      if (query) req = req.ilike("name", `%${query.replace(/[%_,()]/g, " ")}%`);
+      if (query) {
+        const like = `%${query.replace(/[%_,().]/g, " ").trim()}%`;
+        // Official MEXT names are formal ("にわとり ... むね"); aliases hold everyday words.
+        req = req.or(`name.ilike.${like},aliases.ilike.${like}`);
+      }
       if (filter.kind === "dish") req = req.eq("source", "dish");
       if (filter.kind === "group") req = req.eq("food_group", filter.group);
       const rows = await unwrap<Food[]>(req.order("name").limit(query ? 60 : 200));
