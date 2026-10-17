@@ -1,11 +1,12 @@
 import { addDays, format, parseISO } from "date-fns";
 
+/** Every item is rated 1 (bad) to 5 (good). `low` / `high` describe the two ends. */
 export const CONDITION_ITEMS = [
-  { key: "hunger", label: "空腹", inverted: true },
-  { key: "sleep", label: "睡眠", inverted: false },
-  { key: "mood", label: "気分", inverted: false },
-  { key: "energy", label: "活力", inverted: false },
-  { key: "libido", label: "性欲", inverted: false },
+  { key: "hunger", label: "空腹", low: "つらい", high: "平気" },
+  { key: "sleep", label: "睡眠", low: "浅い", high: "ぐっすり" },
+  { key: "mood", label: "気分", low: "落ち込む", high: "良い" },
+  { key: "energy", label: "活力", low: "だるい", high: "元気" },
+  { key: "libido", label: "性欲", low: "ない", high: "ある" },
 ] as const;
 
 export type ConditionKey = (typeof CONDITION_ITEMS)[number]["key"];
@@ -14,10 +15,9 @@ export type ConditionValues = Partial<Record<ConditionKey, number | null>>;
 
 export type DailyCondition = ConditionValues & { date: string };
 
-/** 1–5 where 5 is always "good" (hunger is reversed: 5 = very hungry = bad). */
-export function wellness(key: ConditionKey, value: number): number {
-  const item = CONDITION_ITEMS.find((i) => i.key === key)!;
-  return item.inverted ? 6 - value : value;
+/** 1–5 where 5 is always "good". Kept as a function so callers stay scale-agnostic. */
+export function wellness(_key: ConditionKey, value: number): number {
+  return value;
 }
 
 /** Shown in amber, never red (mental design rules). */

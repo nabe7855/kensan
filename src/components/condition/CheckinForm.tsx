@@ -12,9 +12,9 @@ import { ScaleRow } from "./ScaleRow";
 
 const ONE_TO_FIVE = [1, 2, 3, 4, 5].map((v) => ({ value: v, label: String(v) }));
 const BOWEL = [
-  { value: "good", label: "良" },
-  { value: "normal", label: "普通" },
   { value: "bad", label: "悪" },
+  { value: "normal", label: "普通" },
+  { value: "good", label: "良" },
 ];
 
 type Props = {
@@ -110,10 +110,15 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
         </span>
       </label>
 
+      <p className="text-ghost flex justify-between px-1 text-xs">
+        <span>1 ＝ 悪い</span>
+        <span>5 ＝ 良い</span>
+      </p>
       {activeItems(trackLibido).map((item) => (
         <ScaleRow
           key={item.key}
           label={item.label}
+          anchors={{ low: item.low, high: item.high }}
           options={ONE_TO_FIVE}
           value={scores[item.key]}
           onChange={(v) => setScores((s) => ({ ...s, [item.key]: v }))}

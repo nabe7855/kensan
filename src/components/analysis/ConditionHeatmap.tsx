@@ -21,25 +21,34 @@ const LEVEL_LABEL: Record<HeatLevel, string> = {
 export function ConditionHeatmap({ rows }: { rows: HeatRow[] }) {
   const dates = rows[0]?.cells.map((c) => c.date) ?? [];
   return (
-    <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] items-center gap-1.5">
-      <span />
-      {dates.map((d) => (
-        <span key={d} className="num text-ghost text-center text-[10px]">
-          {Number(d.slice(8))}
-        </span>
-      ))}
-      {rows.map((r) => (
-        <div key={r.key} className="contents">
-          <span className="text-sm">{r.label}</span>
-          {r.cells.map((c) => (
-            <span
-              key={c.date}
-              title={`${c.date} ${r.label} ${c.value ?? "—"}（${LEVEL_LABEL[c.level]}）`}
-              className={cn("h-8 rounded-sm", LEVEL[c.level])}
-            />
-          ))}
-        </div>
-      ))}
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] items-center gap-1.5">
+        <span />
+        {dates.map((d) => (
+          <span key={d} className="num text-ghost text-center text-[10px]">
+            {Number(d.slice(8))}
+          </span>
+        ))}
+        {rows.map((r) => (
+          <div key={r.key} className="contents">
+            <span className="text-sm">{r.label}</span>
+            {r.cells.map((c) => (
+              <span
+                key={c.date}
+                title={`${c.date} ${r.label} ${c.value ?? "—"}（${LEVEL_LABEL[c.level]}）`}
+                className={cn("h-8 rounded-sm", LEVEL[c.level])}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="text-ghost flex items-center justify-end gap-1.5 text-[10px]">
+        <span>1 悪い</span>
+        {(["verylow", "low", "neutral", "good"] as const).map((l) => (
+          <span key={l} className={cn("h-3 w-5 rounded-sm", LEVEL[l])} />
+        ))}
+        <span>5 良い</span>
+      </div>
     </div>
   );
 }
