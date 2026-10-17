@@ -42,6 +42,13 @@ export default async function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="text-muted text-xs">大会</h2>
+        <Button asChild variant="secondary">
+          <Link href="/contest">出場する大会とやること</Link>
+        </Button>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="text-muted text-xs">プレップ</h2>
         {prep ? (
           <>
