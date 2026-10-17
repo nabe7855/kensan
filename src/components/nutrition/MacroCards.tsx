@@ -2,10 +2,10 @@ import { isOver, ZERO, type Macros } from "@/lib/nutrition";
 import { cn } from "@/lib/utils";
 
 const KEYS = [
+  { key: "kcal", label: "kcal", unit: "" },
   { key: "protein_g", label: "P", unit: "g" },
   { key: "fat_g", label: "F", unit: "g" },
   { key: "carb_g", label: "C", unit: "g" },
-  { key: "kcal", label: "kcal", unit: "" },
 ] as const;
 
 /**

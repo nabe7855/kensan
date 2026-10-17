@@ -133,3 +133,24 @@ describe("suggestFill", () => {
     expect(fillReason(remaining, first!)).toMatch(/^残り P42・F12・C85g に対し/);
   });
 });
+
+describe("carbsFromTarget / energySplit", () => {
+  it("fills the remaining energy with carbs", async () => {
+    const { carbsFromTarget } = await import("@/lib/nutrition");
+    // 2250 − 200×4 − 50×9 = 1000 kcal → 250 g
+    expect(carbsFromTarget(2250, 200, 50)).toBe(250);
+    expect(carbsFromTarget(1800, 180, 55)).toBeCloseTo(146.3, 1);
+  });
+
+  it("never goes negative when P and F already exceed the energy", async () => {
+    const { carbsFromTarget } = await import("@/lib/nutrition");
+    expect(carbsFromTarget(1000, 200, 60)).toBe(0);
+  });
+
+  it("splits energy between P, F and C", async () => {
+    const { energySplit } = await import("@/lib/nutrition");
+    const s = energySplit({ kcal: 2250, protein_g: 200, fat_g: 50, carb_g: 250 });
+    expect(s.p + s.f + s.c).toBeCloseTo(1);
+    expect(s.p).toBeCloseTo(800 / 2250, 3);
+  });
+});

@@ -34,7 +34,8 @@ import { SaveSetSheet } from "./SaveSetSheet";
 import { SetSheet } from "./SetSheet";
 import { SubstituteSheet } from "./SubstituteSheet";
 import { MacroCards } from "./MacroCards";
-import { TargetsSheet } from "./TargetsSheet";
+import { TargetEditor } from "./TargetEditor";
+import { Sheet } from "@/components/ui/sheet";
 import { useMealActions } from "./useMealActions";
 
 export function NutritionScreen() {
@@ -303,12 +304,19 @@ export function NutritionScreen() {
         />
       )}
       {editingTargets && (
-        <TargetsSheet
-          today={today}
-          targets={targets.data ?? []}
-          onClose={() => setEditingTargets(false)}
-          onSave={(rows) => void actions.saveTargets(rows, today)}
-        />
+        <Sheet title="目標カロリーと PFC" onClose={() => setEditingTargets(false)}>
+          <div className="flex-1 overflow-y-auto pb-4">
+            <TargetEditor
+              today={today}
+              targets={targets.data ?? []}
+              initialDayType={dayType}
+              onSave={(row) => {
+                void actions.saveTargets([row], today);
+                setEditingTargets(false);
+              }}
+            />
+          </div>
+        </Sheet>
       )}
     </div>
   );
