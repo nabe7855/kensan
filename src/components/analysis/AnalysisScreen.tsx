@@ -9,6 +9,7 @@ import { useWeeklyReports, useWeeklyVolume } from "@/lib/queries/analysis";
 import { useCheckins } from "@/lib/queries/checkins";
 import { BodyHeatmap } from "./BodyHeatmap";
 import { ConditionHeatmap } from "./ConditionHeatmap";
+import { PartSetsCard } from "./PartSetsCard";
 
 const WEEKS = 12;
 
@@ -66,6 +67,8 @@ export function AnalysisScreen() {
       <section className="surface px-3 py-3">
         <ConditionHeatmap rows={conditionHeatmap(checkins.data ?? [], today, trackLibido)} />
       </section>
+
+      <PartSetsCard monday={thisMonday} today={today} />
 
       <section className="surface px-3 py-4">
         <h2 className="text-muted mb-2 text-xs">今週の筋群別セット数（ウォームアップ除く）</h2>
