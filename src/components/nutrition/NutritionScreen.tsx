@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button";
 import { DateNav } from "@/components/ui/date-nav";
 import { mealsLeft, perMealReason, perMealTarget, rankSets, suggestFill } from "@/lib/fill";
 import { kvGet, kvSet } from "@/lib/offline/db";
+import { displayAmount } from "@/lib/food-groups";
 import { dayTotals, mealOrder, nextMealName } from "@/lib/meal-plan";
+import { buildMenus, ROLE_LABEL, setsFromFridge } from "@/lib/menu";
 import { dayTypeFor, subtractMacros, sumMacros, targetFor, type DayType } from "@/lib/nutrition";
 import { todayISO } from "@/lib/prep";
 import {
   useDayMeals,
   useDayOverride,
   useFrequentFoods,
+  useFridge,
   useTargets,
   useTemplates,
   type LogItem,
@@ -22,6 +25,7 @@ import { useBodyWeight } from "@/lib/queries/checkins";
 import { useTrainedOn } from "@/lib/queries/training";
 import { cn } from "@/lib/utils";
 import { FoodSheet } from "./FoodSheet";
+import { FridgeSheet } from "./FridgeSheet";
 import { ItemSheet } from "./ItemSheet";
 import { MealCard } from "./MealCard";
 import { SaveSetSheet } from "./SaveSetSheet";
@@ -51,6 +55,7 @@ export function NutritionScreen() {
   const [editing, setEditing] = useState<LogItem | null>(null);
   const [editingTargets, setEditingTargets] = useState(false);
   const [showAllFills, setShowAllFills] = useState(false);
+  const [fridgeOpen, setFridgeOpen] = useState(false);
   const [mealsPerDay, setMealsPerDayState] = useState(3);
   useEffect(() => {
     void kvGet<number>("mealsPerDay").then((n) => n && setMealsPerDayState(n));
@@ -68,6 +73,7 @@ export function NutritionScreen() {
   const override = useDayOverride(date);
   const trained = useTrainedOn(date);
   const frequent = useFrequentFoods();
+  const fridge = useFridge();
   const bodyKg = useBodyWeight(date);
   const actions = useMealActions(date);
 
@@ -84,10 +90,22 @@ export function NutritionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [perMeal?.protein_g, perMeal?.fat_g, perMeal?.carb_g, frequent.data],
   );
-  const setFits = useMemo(
-    () => (perMeal && templates.data ? rankSets(perMeal, templates.data) : []),
+  const fridgeCount = fridge.data?.length ?? 0;
+  const menus = useMemo(
+    () => (perMeal && fridge.data ? buildMenus(perMeal, fridge.data) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [perMeal?.protein_g, perMeal?.fat_g, perMeal?.carb_g, templates.data],
+    [perMeal?.protein_g, perMeal?.fat_g, perMeal?.carb_g, fridge.data],
+  );
+  // Sets that can be made from the fridge come first; otherwise all sets.
+  const fridgeSets = useMemo(() => {
+    const ids = new Set((fridge.data ?? []).map((f) => f.id));
+    const sets = setsFromFridge(templates.data ?? [], ids);
+    return sets.length ? sets : null;
+  }, [fridge.data, templates.data]);
+  const setFits = useMemo(
+    () => (perMeal && templates.data ? rankSets(perMeal, fridgeSets ?? templates.data) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [perMeal?.protein_g, perMeal?.fat_g, perMeal?.carb_g, templates.data, fridgeSets],
   );
   const hasRoom = perMeal !== null && perMeal.protein_g + perMeal.carb_g + perMeal.fat_g >= 10;
 
@@ -274,9 +292,93 @@ export function NutritionScreen() {
             <span className="text-ghost ml-2 text-xs">あと{left}食</span>
           </p>
 
+          {fridgeCount > 0 ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-muted text-xs">冷蔵庫の食材で</p>
+                <button
+                  type="button"
+                  onClick={() => setFridgeOpen(true)}
+                  className="text-accent h-10 text-xs underline underline-offset-4"
+                >
+                  冷蔵庫（{fridgeCount}）
+                </button>
+              </div>
+              {menus.length === 0 ? (
+                <p className="text-muted text-sm">
+                  主菜（肉・魚・卵・大豆など）か主食（ご飯・パン・麺など）になる食材を入れると献立を組みます
+                </p>
+              ) : (
+                (showAllFills ? menus : menus.slice(0, 1)).map((m, idx) => (
+                  <div key={idx} className="bg-bg flex flex-col gap-2 rounded-md px-3 py-2.5">
+                    <ul className="flex flex-col gap-1">
+                      {m.items.map((it) => {
+                        const amount = displayAmount(it.food, it.grams);
+                        return (
+                          <li key={it.food.id} className="flex items-baseline gap-2">
+                            <span className="text-ghost w-8 shrink-0 text-xs">
+                              {ROLE_LABEL[it.role]}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-base">
+                              {it.food.name}
+                            </span>
+                            <span className="num shrink-0 text-base">
+                              {amount.value}
+                              <span className="text-muted text-xs">{amount.unit}</span>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="num text-muted text-xs">
+                        P{Math.round(m.provides.protein_g)}・F{Math.round(m.provides.fat_g)}・C
+                        {Math.round(m.provides.carb_g)}g・{Math.round(m.provides.kcal)}kcal
+                      </p>
+                      <Button
+                        variant="secondary"
+                        className="h-10 shrink-0 px-3 text-sm"
+                        onClick={async () => {
+                          await actions.addItems(
+                            slot,
+                            m.items.map((i) => ({ food: i.food, grams: i.grams })),
+                            { planned: true },
+                          );
+                          flash(`${slot}の予定に献立を入れた`);
+                        }}
+                      >
+                        {slot}に予定
+                      </Button>
+                    </div>
+                    <p className="text-ghost text-xs leading-relaxed">{m.reason}</p>
+                  </div>
+                ))
+              )}
+              {menus.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllFills((v) => !v)}
+                  className="text-ghost h-10 self-start text-xs underline underline-offset-4"
+                >
+                  {showAllFills ? "他の案を閉じる" : `他の案（${menus.length - 1}）`}
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setFridgeOpen(true)}
+              className="border-border text-accent flex min-h-12 items-center justify-center rounded-md border border-dashed px-3 text-sm"
+            >
+              ＋ 冷蔵庫の中身を登録して献立を出す
+            </button>
+          )}
+
           {setFits.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-muted text-xs">マイ定食から</p>
+              <p className="text-muted text-xs">
+                {fridgeSets ? "マイ定食（冷蔵庫の材料でできる）" : "マイ定食から"}
+              </p>
               {setFits.map(({ set, provides }) => (
                 <div key={set.id} className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -305,10 +407,10 @@ export function NutritionScreen() {
             </div>
           )}
 
-          {fills.length > 0 && (
+          {fridgeCount === 0 && fills.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-muted text-xs">よく使う食品で組むなら</p>
-              {(showAllFills ? fills : fills.slice(0, 1)).map((f, idx) => (
+              {fills.slice(0, 1).map((f, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-2">
                   <p className="num text-base">
                     {f.items.map((it) => `${it.food.name} ${it.grams}g`).join(" + ")}
@@ -325,15 +427,6 @@ export function NutritionScreen() {
                   </Button>
                 </div>
               ))}
-              {fills.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllFills((v) => !v)}
-                  className="text-ghost self-start text-xs underline underline-offset-4"
-                >
-                  {showAllFills ? "候補を閉じる" : `他の候補（${fills.length - 1}）`}
-                </button>
-              )}
             </div>
           )}
           <p className="text-ghost text-xs leading-relaxed">{perMealReason(remaining, left)}</p>
@@ -348,6 +441,7 @@ export function NutritionScreen() {
         </div>
       </div>
 
+      {fridgeOpen && <FridgeSheet onClose={() => setFridgeOpen(false)} />}
       {adding && (
         <FoodSheet
           slot={adding}
