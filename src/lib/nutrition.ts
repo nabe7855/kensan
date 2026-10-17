@@ -113,3 +113,19 @@ export function mealLogId(userId: string, date: string, slot: string): string {
   const variant = ((parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
+
+/** Carbs that fill the energy left after protein (4 kcal/g) and fat (9 kcal/g). Never negative. */
+export function carbsFromTarget(kcal: number, proteinG: number, fatG: number): number {
+  return Math.max(0, Math.round(((kcal - proteinG * 4 - fatG * 9) / 4) * 10) / 10);
+}
+
+/** Share of energy from P, F and C (0–1 each) for a target. */
+export function energySplit(m: Macros): { p: number; f: number; c: number } {
+  const total = m.protein_g * 4 + m.fat_g * 9 + m.carb_g * 4;
+  if (total <= 0) return { p: 0, f: 0, c: 0 };
+  return {
+    p: (m.protein_g * 4) / total,
+    f: (m.fat_g * 9) / total,
+    c: (m.carb_g * 4) / total,
+  };
+}
