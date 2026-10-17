@@ -22,6 +22,8 @@ import {
 import { readActiveWorkout } from "@/lib/useActiveWorkout";
 import { cn } from "@/lib/utils";
 import type { ActiveWorkout } from "@/lib/workout";
+import { RestPicker } from "@/components/rest/RestPicker";
+import { RestTimer } from "@/components/workout/RestTimer";
 import { MonthCalendar } from "./MonthCalendar";
 import { startWorkout } from "./startWorkout";
 
@@ -177,6 +179,12 @@ export function TrainingScreen() {
           )}
         </section>
       )}
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xl font-bold">レストタイマー</h2>
+        <RestTimer />
+        <RestPicker />
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
