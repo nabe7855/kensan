@@ -10,6 +10,7 @@ import { addDaysISO, todayISO } from "@/lib/prep";
 import { useCheckins } from "@/lib/queries/checkins";
 import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
+import { ContestCard } from "./ContestCard";
 import { NutritionSummary } from "./NutritionSummary";
 import { PhaseCard } from "./PhaseCard";
 import { TodayTrainingCard } from "./TodayTrainingCard";
@@ -81,6 +82,7 @@ export function HomeScreen() {
         </section>
       )}
 
+      <ContestCard />
       <PhaseCard />
       <NutritionSummary today={today} />
 

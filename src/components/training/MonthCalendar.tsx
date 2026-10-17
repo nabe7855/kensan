@@ -13,10 +13,12 @@ type Props = {
   hrefFor: (day: number) => string;
   /** Last day that can be opened (later days are not linked). */
   lastDay?: number;
+  /** Highlighted badge per day, e.g. a contest ("大会"). */
+  marks?: Map<number, string>;
 };
 
 /** Monday-first month grid. Each day links to its report and shows what was trained. */
-export function MonthCalendar({ year, month, labels, today, hrefFor, lastDay }: Props) {
+export function MonthCalendar({ year, month, labels, today, hrefFor, lastDay, marks }: Props) {
   const first = new Date(year, month - 1, 1);
   const days = new Date(year, month, 0).getDate();
   const offset = (first.getDay() + 6) % 7;
@@ -43,11 +45,17 @@ export function MonthCalendar({ year, month, labels, today, hrefFor, lastDay }: 
           );
           if (!d) return <div key={i} className={cellClass} />;
           const label = labels.get(d);
+          const mark = marks?.get(d);
           const content = (
             <>
               <span className={cn("num text-sm", d === today ? "text-accent" : "text-muted")}>
                 {d}
               </span>
+              {mark && (
+                <span className="bg-accent text-bg rounded-sm px-1 text-[10px] leading-tight font-bold">
+                  {mark}
+                </span>
+              )}
               {label && (
                 <span className="text-accent line-clamp-2 text-center text-[10px] leading-tight font-bold">
                   {label}
@@ -63,7 +71,7 @@ export function MonthCalendar({ year, month, labels, today, hrefFor, lastDay }: 
             <Link
               key={i}
               href={hrefFor(d)}
-              aria-label={`${month}月${d}日のレポート${label ? `（${label}）` : ""}`}
+              aria-label={`${month}月${d}日のレポート${mark ? `・${mark}` : ""}${label ? `（${label}）` : ""}`}
               className={cn(cellClass, "active:bg-card")}
             >
               {content}

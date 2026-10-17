@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addDaysISO, todayISO } from "@/lib/prep";
+import { countdownLabel } from "@/lib/contest";
+import { useContests } from "@/lib/queries/contests";
 import { jstMidnight, useSessions } from "@/lib/queries/training";
 import {
   BODY_PARTS,
@@ -69,8 +71,28 @@ export function TrainingScreen() {
     return new Map([...byDay].map(([d, parts]) => [d, partsText(parts) || "トレ"]));
   }, [monthSessions.data]);
 
+  const contests = useContests();
+  const marks = useMemo(
+    () =>
+      new Map(
+        (contests.data ?? [])
+          .filter((c) => c.date.startsWith(`${month.y}-${pad(month.m)}-`))
+          .map((c) => [Number(c.date.slice(8)), "大会"]),
+      ),
+    [contests.data, month],
+  );
+
   const last = part && recent.data ? lastSessionFor(recent.data, part) : null;
   const isCurrentMonth = month.y === ty && month.m === tm;
+  const monthKey = `${month.y}-${pad(month.m)}`;
+  const isFuture = monthKey > `${ty}-${pad(tm)}`;
+  const lastContestMonth =
+    (contests.data ?? [])
+      .map((c) => c.date.slice(0, 7))
+      .sort()
+      .at(-1) ?? "";
+  const canGoNext = monthKey < `${ty}-${pad(tm)}` || monthKey < lastContestMonth;
+  const monthContests = (contests.data ?? []).filter((c) => c.date.startsWith(`${monthKey}-`));
 
   async function begin(title: string, plan: ReturnType<typeof planFromSession>) {
     setStarting(true);
@@ -203,7 +225,7 @@ export function TrainingScreen() {
             <button
               type="button"
               aria-label="次の月"
-              disabled={isCurrentMonth}
+              disabled={!canGoNext}
               onClick={() => shiftMonth(1)}
               className="text-muted flex size-12 items-center justify-center disabled:opacity-30"
             >
@@ -215,10 +237,26 @@ export function TrainingScreen() {
           year={month.y}
           month={month.m}
           labels={labels}
+          marks={marks}
           today={isCurrentMonth ? td : undefined}
-          lastDay={isCurrentMonth ? td : undefined}
+          lastDay={isCurrentMonth ? td : isFuture ? 0 : undefined}
           hrefFor={(d) => `/report/${month.y}-${pad(month.m)}-${pad(d)}`}
         />
+        {monthContests.map((c) => (
+          <Link
+            key={c.id}
+            href={`/contest/${c.id}`}
+            className="surface border-l-accent flex min-h-12 items-center justify-between gap-2 border-l-2 px-3 py-2"
+          >
+            <span className="truncate text-sm">
+              <span className="num text-muted mr-2">{c.date.slice(5).replace("-", "/")}</span>
+              {c.name}
+            </span>
+            <span className="num text-accent shrink-0 text-sm">
+              {countdownLabel(c.date, today)}
+            </span>
+          </Link>
+        ))}
         <p className="text-ghost text-xs">
           日付をタップすると、その日のレポート（トレ・食事・体調）を開きます
         </p>
