@@ -56,4 +56,10 @@ describe("prepSchema", () => {
   it("caps the weekly rate at 1.0", () => {
     expect(prepSchema.safeParse({ ...valid, weekly_rate_pct: "1.2" }).success).toBe(false);
   });
+  it("accepts a start date in the past, but not on or after the contest", () => {
+    expect(prepSchema.safeParse({ ...valid, start_date: "2026-08-01" }).success).toBe(true);
+    const r = prepSchema.safeParse({ ...valid, start_date: "2027-04-18" });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0]?.message).toBe("減量開始日は大会日より前にしてください");
+  });
 });

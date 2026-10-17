@@ -50,11 +50,14 @@ export async function savePrep(_prev: FormState, formData: FormData): Promise<Fo
   }
   const today = todayISO();
   if (parsed.data.contest_date <= today) return { error: "大会日は明日以降にしてください" };
+  const startDate = parsed.data.start_date ?? today;
+  if (startDate > today) return { error: "減量開始日は今日以前にしてください" };
 
   const { supabase, user } = await requireUser();
   const { reverse_plan, why_text, ...rest } = parsed.data;
   const fields = {
     ...rest,
+    start_date: startDate,
     why_text: why_text || null,
     reverse_plan: reverse_plan ? { enabled: true } : null,
   };
@@ -78,7 +81,7 @@ export async function savePrep(_prev: FormState, formData: FormData): Promise<Fo
 
     const { error } = await supabase
       .from("preps")
-      .insert({ ...fields, user_id: user.id, start_date: today, is_active: true });
+      .insert({ ...fields, user_id: user.id, is_active: true });
     if (error) return { error: "保存できませんでした。もう一度お試しください" };
   }
   revalidatePath("/", "layout");
