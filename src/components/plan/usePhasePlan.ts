@@ -33,11 +33,11 @@ export function usePhasePlan() {
     const weights = new Map(
       (checkins.data ?? []).filter((c) => c.weight_kg != null).map((c) => [c.date, c.weight_kg!]),
     );
-    const dates = [...new Set([...weights.keys(), ...(intake.data?.keys() ?? [])])].sort();
+    const dates = [...new Set([...weights.keys(), ...Object.keys(intake.data ?? {})])].sort();
     return estimateMaintenance(
       dates.map((d) => ({
         date: d,
-        kcal: intake.data?.get(d) ?? null,
+        kcal: intake.data?.[d] ?? null,
         weightKg: weights.get(d) ?? null,
       })),
     );
