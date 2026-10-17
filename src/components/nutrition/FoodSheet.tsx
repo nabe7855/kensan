@@ -17,6 +17,7 @@ import {
 } from "@/lib/queries/nutrition";
 import { cn } from "@/lib/utils";
 import { AmountEntry } from "./AmountEntry";
+import { NewFoodForm } from "./NewFoodForm";
 
 type Props = {
   slot: string;
@@ -89,11 +90,6 @@ function FilterChip({
   );
 }
 
-const num = (s: string) => {
-  const n = Number(s);
-  return s.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null;
-};
-
 const sameFilter = (a: FoodFilter, b: FoodFilter) =>
   a.kind === b.kind && (a.kind !== "group" || (b.kind === "group" && a.group === b.group));
 
@@ -109,7 +105,6 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
   const frequent = useFrequentFoods();
   const [picked, setPicked] = useState<Food | null>(null);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState({ name: "", kcal: "", p: "", f: "", c: "" });
 
   if (picked) {
     return (
@@ -134,26 +129,36 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
     );
   }
 
-  async function createFood() {
-    const kcal = num(draft.kcal);
-    if (!draft.name.trim() || kcal === null) return;
-    const food: Food = {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      name: draft.name.trim(),
-      kcal,
-      protein_g: num(draft.p) ?? 0,
-      fat_g: num(draft.f) ?? 0,
-      carb_g: num(draft.c) ?? 0,
-      is_cooked: false,
-      source: "user",
-      food_group: null,
-      unit_name: null,
-      unit_grams: null,
-    };
-    queryClient.setQueryData<Food[]>(nutritionKeys.frequent, (list) => [food, ...(list ?? [])]);
-    setPicked(food);
-    await write({ table: "foods", kind: "insert", payload: food });
+  if (creating) {
+    return (
+      <Sheet title="マイ食品を登録" onClose={onClose}>
+        <NewFoodForm
+          initialName={q.trim()}
+          onCancel={() => setCreating(false)}
+          onSave={async (draft) => {
+            const { fiber_g, sodium_mg, ...rest } = draft;
+            const food: Food = {
+              ...rest,
+              id: crypto.randomUUID(),
+              user_id: userId,
+              is_cooked: false,
+              source: "user",
+            };
+            queryClient.setQueryData<Food[]>(nutritionKeys.frequent, (list) => [
+              food,
+              ...(list ?? []),
+            ]);
+            setCreating(false);
+            setPicked(food);
+            await write({
+              table: "foods",
+              kind: "insert",
+              payload: { ...food, fiber_g, sodium_mg },
+            });
+          }}
+        />
+      </Sheet>
+    );
   }
 
   const browsing = !!deferred.trim() || filter.kind !== "all";
@@ -205,48 +210,9 @@ export function FoodSheet({ slot, onClose, onAdd }: Props) {
         )}
       </ul>
       <div className="border-border border-t py-3">
-        {creating ? (
-          <div className="flex flex-col gap-2">
-            <input
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder="食品名"
-              aria-label="食品名"
-              className="surface placeholder:text-ghost h-12 px-3 focus:outline-none"
-            />
-            <div className="grid grid-cols-4 gap-2">
-              {(
-                [
-                  ["kcal", "kcal"],
-                  ["p", "P"],
-                  ["f", "F"],
-                  ["c", "C"],
-                ] as const
-              ).map(([k, label]) => (
-                <label key={k} className="flex flex-col items-center gap-0.5">
-                  <span className="text-ghost text-[10px]">{label} /100g</span>
-                  <input
-                    inputMode="decimal"
-                    value={draft[k]}
-                    onChange={(e) => setDraft({ ...draft, [k]: e.target.value })}
-                    className="num bg-card border-border h-11 w-full rounded-md border text-center text-lg focus:outline-none"
-                  />
-                </label>
-              ))}
-            </div>
-            <Button onClick={createFood} disabled={!draft.name.trim() || num(draft.kcal) === null}>
-              登録して量を入れる
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            className="text-accent w-full"
-            onClick={() => setCreating(true)}
-          >
-            ＋ マイ食品を登録
-          </Button>
-        )}
+        <Button variant="outline" className="text-accent w-full" onClick={() => setCreating(true)}>
+          ＋ マイ食品を登録（パッケージの表示から）
+        </Button>
       </div>
     </Sheet>
   );
