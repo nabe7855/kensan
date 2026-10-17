@@ -8,7 +8,9 @@ import { formatRest, setIntervals } from "@/lib/rest-timer";
 import { SET_TYPES, type SetType } from "@/lib/strength";
 import { setDiff } from "@/lib/progress";
 import { cn } from "@/lib/utils";
+import { startingValues } from "@/lib/wheel";
 import type { DraftSet } from "@/lib/workout";
+import { SetPicker, type SetValues } from "./SetPicker";
 
 type Props = {
   sets: DraftSet[];
@@ -16,7 +18,8 @@ type Props = {
   activeIndex: number;
   flashId: string | null;
   onChange: (index: number, patch: Partial<DraftSet>) => void;
-  onToggle: (index: number) => void;
+  /** Check a set off (or undo); `values` are numbers picked in the same tap. */
+  onToggle: (index: number, values?: SetValues) => void;
   onFocusRow: (index: number) => void;
   showRir?: boolean;
   repPrs?: number[];
@@ -29,8 +32,7 @@ export function prevFor(previous: HistorySet[], i: number): HistorySet | undefin
 }
 
 const cell = "border-border border-l first:border-l-0";
-const input =
-  "num h-11 w-full rounded-md bg-transparent text-center text-2xl placeholder:text-ghost focus:outline-none";
+const valueButton = "num flex h-11 w-full items-center justify-center rounded-md text-2xl";
 
 export function SetTable({
   sets,
@@ -44,6 +46,12 @@ export function SetTable({
   repPrs = [],
 }: Props) {
   const [picking, setPicking] = useState<number | null>(null);
+  const [editing, setEditing] = useState<number | null>(null);
+  const toPatch = (v: SetValues): Partial<DraftSet> => ({
+    weight: String(v.weight),
+    reps: String(v.reps),
+    ...(showRir ? { rir: String(v.rir) } : {}),
+  });
   const cols = showRir
     ? "grid-cols-[3rem_1.4fr_1fr_0.8fr_0.8fr_3rem]"
     : "grid-cols-[3rem_1.4fr_1.1fr_0.9fr_3rem]";
@@ -99,22 +107,30 @@ export function SetTable({
               >
                 {prev ? `${fmt(prev.weight_kg)} × ${fmt(prev.reps)}` : "—"}
               </span>
-              {fields.map(([key, label, mode]) => (
-                <span key={key} className={cn(cell, "px-1 py-1.5")}>
-                  <input
-                    inputMode={mode}
-                    aria-label={`セット${i + 1} ${label}`}
-                    value={s[key]}
-                    placeholder={fmt(
-                      key === "weight" ? prev?.weight_kg : key === "reps" ? prev?.reps : prev?.rir,
-                    )}
-                    disabled={done}
-                    onFocus={() => onFocusRow(i)}
-                    onChange={(e) => onChange(i, { [key]: e.target.value })}
-                    className={cn(input, active && "border-accent border", done && "text-fg")}
-                  />
-                </span>
-              ))}
+              {fields.map(([key, label]) => {
+                const ghost = fmt(
+                  key === "weight" ? prev?.weight_kg : key === "reps" ? prev?.reps : prev?.rir,
+                );
+                return (
+                  <span key={key} className={cn(cell, "px-1 py-1.5")}>
+                    <button
+                      type="button"
+                      aria-label={`セット${i + 1} ${label}：${s[key] || "未入力"}。タップで選ぶ`}
+                      onClick={() => {
+                        onFocusRow(i);
+                        setEditing(i);
+                      }}
+                      className={cn(
+                        valueButton,
+                        active && "border-accent border",
+                        s[key] ? "text-fg" : "text-ghost",
+                      )}
+                    >
+                      {s[key] || ghost || "—"}
+                    </button>
+                  </span>
+                );
+              })}
               <span className={cn(cell, "flex h-14 items-center justify-center")}>
                 <button
                   type="button"
@@ -151,6 +167,21 @@ export function SetTable({
           </div>
         );
       })}
+      {editing !== null && sets[editing] && (
+        <SetPicker
+          title={`セット${editing + 1}`}
+          initial={startingValues(sets[editing]!, prevFor(previous, editing), sets[editing - 1])}
+          previous={prevFor(previous, editing) ?? null}
+          showRir={showRir}
+          canComplete={!sets[editing]!.doneAt}
+          onApply={(v) => onChange(editing, toPatch(v))}
+          onComplete={(v) => {
+            onChange(editing, toPatch(v));
+            onToggle(editing, v);
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {picking !== null && (
         <Sheet title={`セット${picking + 1}の追い込み方`} onClose={() => setPicking(null)}>
           <ul className="flex flex-col gap-2 overflow-y-auto pb-6">

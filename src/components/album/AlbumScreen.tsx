@@ -193,7 +193,7 @@ export function AlbumScreen() {
           e.target.value = "";
         }}
       />
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30">
+      <div className="kb-open:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30">
         <div className="mx-auto max-w-[480px] px-4 pb-2">
           {!comparing && (
             <Button size="lg" className="w-full" onClick={() => fileRef.current?.click()}>

@@ -33,6 +33,7 @@ import { RestTimer } from "./RestTimer";
 import { RestPicker } from "@/components/rest/RestPicker";
 import { useRestTimer } from "@/components/providers/RestTimerProvider";
 import { PlateauCard } from "./PlateauCard";
+import type { SetValues } from "./SetPicker";
 import { prevFor, SetTable } from "./SetTable";
 import { StepperBar } from "./StepperBar";
 
@@ -149,14 +150,20 @@ export function WorkoutScreen() {
       ),
     }));
 
-  function toggle(i: number) {
+  function toggle(i: number, picked?: SetValues) {
     if (!current) return;
     const s = current.sets[i]!;
-    if (s.doneAt) return patchSet(i, { doneAt: null });
+    if (s.doneAt && !picked) return patchSet(i, { doneAt: null });
     const prev = prevFor(prevSets, i);
-    const weight = s.weight || (prev?.weight_kg != null ? String(prev.weight_kg) : "");
-    const reps = s.reps || (prev?.reps != null ? String(prev.reps) : "");
-    const rir = s.rir || (prev?.rir != null ? String(prev.rir) : "");
+    // Numbers picked in the same tap win over the (not yet updated) draft.
+    const weight = picked
+      ? String(picked.weight)
+      : s.weight || (prev?.weight_kg != null ? String(prev.weight_kg) : "");
+    const reps = picked
+      ? String(picked.reps)
+      : s.reps || (prev?.reps != null ? String(prev.reps) : "");
+    const rir =
+      picked && showRir ? String(picked.rir) : s.rir || (prev?.rir != null ? String(prev.rir) : "");
     if (!weight || !reps) {
       setFocusRow(i);
       return;
@@ -406,7 +413,7 @@ export function WorkoutScreen() {
         </Button>
       </div>
 
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30">
+      <div className="kb-open:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30">
         <div className="mx-auto flex max-w-[480px] flex-col gap-2 px-4 pb-2">
           {active && (
             <StepperBar

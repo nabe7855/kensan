@@ -67,7 +67,7 @@ export function StatusStrip() {
       <div aria-hidden className="h-14" />
       <section
         aria-label="今日の状況"
-        className="border-border bg-bg fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t"
+        className="border-border bg-bg kb-open:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t"
       >
         <StripRings items={items} />
       </section>

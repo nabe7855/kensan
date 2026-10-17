@@ -9,8 +9,20 @@ import {
   startTimer,
   type RestTimerState,
 } from "@/lib/rest-timer";
+import {
+  DEFAULT_ALERTS,
+  playChime,
+  unlockAudio,
+  VIBRATION_PATTERN,
+  type RestAlerts,
+} from "@/lib/rest-alert";
 
-const KEYS = { timer: "restTimer", presets: "restPresets", selected: "restSelected" };
+const KEYS = {
+  timer: "restTimer",
+  presets: "restPresets",
+  selected: "restSelected",
+  alerts: "restAlerts",
+};
 
 type RestTimer = {
   timer: RestTimerState | null;
@@ -22,12 +34,18 @@ type RestTimer = {
   stop: () => void;
   select: (sec: number) => void;
   setPresets: (presets: number[]) => void;
+  /** Sound / vibration when the countdown ends (this device only). */
+  alerts: RestAlerts;
+  setAlerts: (a: RestAlerts) => void;
+  /** Play the end-of-rest signal now, to try the settings. */
+  preview: () => void;
 };
 
 const Ctx = createContext<RestTimer | null>(null);
 
-function notifyRestOver() {
-  navigator.vibrate?.([200, 100, 200]);
+function notifyRestOver(alerts: RestAlerts) {
+  if (alerts.vibrate) navigator.vibrate?.(VIBRATION_PATTERN);
+  if (alerts.sound) playChime();
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   const options = { body: "次のセットへ", tag: "kensan-rest" };
   // Android Chrome and installed PWAs only allow notifications from the service worker.
@@ -47,6 +65,9 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const [timer, setTimer] = useState<RestTimerState | null>(null);
   const [presets, setPresetsState] = useState<number[]>([...REST_PRESETS]);
   const [selected, setSelected] = useState<number>(90);
+  const [alerts, setAlertsState] = useState<RestAlerts>(DEFAULT_ALERTS);
+  const alertsRef = useRef(alerts);
+  alertsRef.current = alerts;
   const fired = useRef(false);
 
   useEffect(() => {
@@ -54,10 +75,12 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
       kvGet<RestTimerState>(KEYS.timer),
       kvGet<number[]>(KEYS.presets),
       kvGet<number>(KEYS.selected),
-    ]).then(([t, p, s]) => {
+      kvGet<RestAlerts>(KEYS.alerts),
+    ]).then(([t, p, s, a]) => {
       if (t && remainingSec(t) > 0) setTimer(t);
       if (p?.length) setPresetsState(p);
       if (s) setSelected(s);
+      if (a) setAlertsState({ ...DEFAULT_ALERTS, ...a });
     });
   }, []);
 
@@ -68,7 +91,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     const id = setInterval(() => {
       if (remainingSec(timer) <= 0 && !fired.current) {
         fired.current = true;
-        notifyRestOver();
+        notifyRestOver(alertsRef.current);
         setTimer(null);
         void kvDelete(KEYS.timer);
       }
@@ -83,6 +106,8 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   const start = useCallback(
     (sec?: number) => {
+      // Starting is always a tap, the one moment browsers let us unlock sound for later.
+      if (alertsRef.current.sound) unlockAudio();
       if (typeof Notification !== "undefined" && Notification.permission === "default") {
         void Notification.requestPermission();
       }
@@ -109,9 +134,33 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     setPresetsState(p);
     void kvSet(KEYS.presets, p);
   }, []);
+  const setAlerts = useCallback((a: RestAlerts) => {
+    setAlertsState(a);
+    void kvSet(KEYS.alerts, a);
+    if (a.sound) unlockAudio();
+  }, []);
+  const preview = useCallback(() => {
+    unlockAudio();
+    if (alertsRef.current.vibrate) navigator.vibrate?.(VIBRATION_PATTERN);
+    if (alertsRef.current.sound) playChime();
+  }, []);
 
   return (
-    <Ctx.Provider value={{ timer, presets, selected, start, add, stop, select, setPresets }}>
+    <Ctx.Provider
+      value={{
+        timer,
+        presets,
+        selected,
+        start,
+        add,
+        stop,
+        select,
+        setPresets,
+        alerts,
+        setAlerts,
+        preview,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

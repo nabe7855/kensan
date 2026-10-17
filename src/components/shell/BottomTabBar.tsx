@@ -11,7 +11,7 @@ export function BottomTabBar() {
   return (
     <nav
       aria-label="メイン"
-      className="border-border bg-bg fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)]"
+      className="border-border bg-bg kb-open:hidden fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto grid max-w-[480px] grid-cols-5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
