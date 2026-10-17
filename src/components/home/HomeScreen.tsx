@@ -11,6 +11,7 @@ import { useCheckins } from "@/lib/queries/checkins";
 import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
 import { NutritionSummary } from "./NutritionSummary";
+import { PhaseCard } from "./PhaseCard";
 import { TodayTrainingCard } from "./TodayTrainingCard";
 import { WeightChart } from "./WeightChart";
 
@@ -80,6 +81,7 @@ export function HomeScreen() {
         </section>
       )}
 
+      <PhaseCard />
       <NutritionSummary today={today} />
 
       <TodayTrainingCard />

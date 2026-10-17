@@ -83,7 +83,7 @@ export function DayReport({ date }: { date: string }) {
                   <p className="flex items-baseline gap-2">
                     <span className="text-muted text-xs">体重</span>
                     <span className="num text-4xl leading-none">
-                      {checkin.weight_kg.toFixed(1)}
+                      {Number(checkin.weight_kg).toFixed(1)}
                     </span>
                     <span className="num text-muted">kg</span>
                   </p>
@@ -116,7 +116,7 @@ export function DayReport({ date }: { date: string }) {
                 <p className="text-muted text-xs">
                   {checkin.bowel && <>便通 {BOWEL[checkin.bowel] ?? checkin.bowel}　</>}
                   {checkin.rhr != null && <>心拍 {checkin.rhr}　</>}
-                  {checkin.temp_c != null && <>体温 {checkin.temp_c.toFixed(1)}℃</>}
+                  {checkin.temp_c != null && <>体温 {Number(checkin.temp_c).toFixed(1)}℃</>}
                 </p>
                 {checkin.note && (
                   <blockquote className="border-accent border-l-2 pl-3 text-base leading-relaxed">
@@ -203,7 +203,7 @@ export function DayReport({ date }: { date: string }) {
                             ] as const
                           )
                             .filter(([, v]) => v != null)
-                            .map(([l, v]) => `${l} ${FEEL[v!]}`)
+                            .map(([l, v]) => `${l} ${FEEL[v!] ?? v}`)
                             .join(" ・ ")}
                         </p>
                       )}
@@ -218,7 +218,8 @@ export function DayReport({ date }: { date: string }) {
               <div className="flex flex-col gap-2">
                 <MacroCards eaten={eaten} planned={planned} target={target} />
                 {order.map((slot, i) => {
-                  const m = loggedMeals.find((x) => x.slot === slot)!;
+                  const m = loggedMeals.find((x) => x.slot === slot);
+                  if (!m) return null;
                   const mm = mealMacros(m);
                   return (
                     <div key={slot} className="surface flex flex-col gap-1 px-4 py-3">
@@ -238,6 +239,7 @@ export function DayReport({ date }: { date: string }) {
                       </p>
                       <p className="text-sm leading-relaxed">
                         {m.items
+                          .filter((it) => it.food)
                           .map((it) => {
                             const a = displayAmount(it.food, it.grams);
                             return `${it.food.name} ${a.value}${a.unit}`;
