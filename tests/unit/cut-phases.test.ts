@@ -136,3 +136,38 @@ describe("custom phase split", () => {
     ]);
   });
 });
+
+describe("phase dates from the calendar", () => {
+  it("turns start dates into phases that end where the next begins", async () => {
+    const { planPhases } = await import("@/lib/cut-phases");
+    const phases = planPhases(input, { mid: "2026-07-01", late: "2026-08-20", peak: "2026-10-10" });
+    expect(phases.map((p) => [p.key, p.start, p.end])).toEqual([
+      ["early", "2026-06-01", "2026-06-30"],
+      ["mid", "2026-07-01", "2026-08-19"],
+      ["late", "2026-08-20", "2026-10-09"],
+      ["peak", "2026-10-10", "2026-10-18"],
+    ]);
+    expect(phases.at(-1)!.endKg).toBeCloseTo(70, 5);
+  });
+
+  it("rejects dates out of order and falls back to the default", async () => {
+    const { datesValid, planPhases } = await import("@/lib/cut-phases");
+    const bad = { mid: "2026-08-20", late: "2026-07-01", peak: "2026-10-10" };
+    expect(datesValid("2026-06-01", "2026-10-19", bad)).toBe(false);
+    expect(datesValid("2026-06-01", "2026-10-19", { ...bad, mid: "2026-06-01" })).toBe(false);
+    expect(planPhases(input, bad).map((p) => p.weeks)).toEqual([7, 7, 5, 1]);
+  });
+
+  it("offers the default split as dates and labels lengths", async () => {
+    const { initialDates, lengthLabel, isPhaseDates } = await import("@/lib/cut-phases");
+    expect(initialDates("2026-06-01", "2026-10-19")).toEqual({
+      mid: "2026-07-20",
+      late: "2026-09-07",
+      peak: "2026-10-12",
+    });
+    expect(lengthLabel("2026-06-01", "2026-07-17")).toBe("6週4日");
+    expect(lengthLabel("2026-10-12", "2026-10-19")).toBe("1週");
+    expect(isPhaseDates({ early: 3, mid: 4, peak: 1 })).toBe(false);
+    expect(isPhaseDates({ mid: "2026-07-01", late: "2026-08-20", peak: "2026-10-10" })).toBe(true);
+  });
+});
