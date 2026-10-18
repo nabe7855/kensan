@@ -16,6 +16,7 @@ import {
   VIBRATION_PATTERN,
   type RestAlerts,
 } from "@/lib/rest-alert";
+import { useWakeLock } from "@/lib/useWakeLock";
 
 const KEYS = {
   timer: "restTimer",
@@ -69,6 +70,8 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const alertsRef = useRef(alerts);
   alertsRef.current = alerts;
   const fired = useRef(false);
+  // A sleeping screen pauses the page, and with it the sound at the end of the rest.
+  useWakeLock(alerts.keepAwake && !!timer);
 
   useEffect(() => {
     void Promise.all([

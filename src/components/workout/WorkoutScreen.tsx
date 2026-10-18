@@ -18,6 +18,7 @@ import { plateauNote, repPRIndexes, sessionBests } from "@/lib/plateau";
 import { bestE1RM, signedDiff } from "@/lib/progress";
 import { bestByExercise, type SetType } from "@/lib/strength";
 import { useActiveWorkout } from "@/lib/useActiveWorkout";
+import { useWakeLock } from "@/lib/useWakeLock";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_REST_SEC,
@@ -94,6 +95,7 @@ export function WorkoutScreen() {
   const [finishing, setFinishing] = useState(false);
 
   const restTimer = useRestTimer();
+  useWakeLock(restTimer.alerts.keepAwake && !!workout);
 
   if (!loaded) return <div className="surface h-96 animate-pulse" aria-busy />;
   if (!workout) {

@@ -1,7 +1,12 @@
 /** What happens when a rest countdown ends; kept per device. */
-export type RestAlerts = { sound: boolean; vibrate: boolean };
+export type RestAlerts = {
+  sound: boolean;
+  vibrate: boolean;
+  /** Keep the screen on during a workout and a rest, so the sound can play. */
+  keepAwake: boolean;
+};
 
-export const DEFAULT_ALERTS: RestAlerts = { sound: true, vibrate: true };
+export const DEFAULT_ALERTS: RestAlerts = { sound: true, vibrate: true, keepAwake: true };
 
 type AudioCtx = typeof AudioContext;
 let ctx: AudioContext | null = null;
