@@ -2,10 +2,9 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMealActions } from "@/components/nutrition/useMealActions";
-import { useAppData } from "@/components/providers/AppDataProvider";
+import { useAppData, useRefreshAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -178,7 +177,7 @@ function datesOf(phases: Phase[]): PhaseDates | null {
 
 /** Early / mid / late / peak guideline for the active prep, with an option to schedule it as targets. */
 export function PhasePlan() {
-  const router = useRouter();
+  const refreshAppData = useRefreshAppData();
   const queryClient = useQueryClient();
   const { userId } = useAppData();
   const { write } = useSync();
@@ -251,7 +250,7 @@ export function PhasePlan() {
         ...(draftStart ? { start_date: draftStart } : {}),
       },
     });
-    router.refresh();
+    void refreshAppData();
   }
 
   async function apply() {

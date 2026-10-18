@@ -1,14 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useAppData } from "@/components/providers/AppDataProvider";
+import { useAppData, useRefreshAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import type { PlateauNote } from "@/lib/plateau";
 
 /** Phase-aware note for the current exercise, with a way to stop notes for it. */
 export function PlateauCard({ note, exerciseId }: { note: PlateauNote; exerciseId: string }) {
-  const router = useRouter();
+  const refreshAppData = useRefreshAppData();
   const { userId, mutedExercises } = useAppData();
   const { write } = useSync();
   const [open, setOpen] = useState(false);
@@ -23,7 +22,7 @@ export function PlateauCard({ note, exerciseId }: { note: PlateauNote; exerciseI
       match: { user_id: userId },
       payload: { muted_exercises: [...new Set([...mutedExercises, exerciseId])] },
     });
-    router.refresh();
+    void refreshAppData();
   }
 
   return (

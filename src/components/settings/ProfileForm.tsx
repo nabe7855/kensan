@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateProfile, type SettingsState } from "@/app/(app)/settings/actions";
+import { useRefreshAppData } from "@/components/providers/AppDataProvider";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,11 @@ type Props = {
 export function ProfileForm(props: Props) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(updateProfile, {});
   const [libido, setLibido] = useState(props.trackLibido);
+  const refreshAppData = useRefreshAppData();
+  // The name and libido setting are used across the app; reload them once saved.
+  useEffect(() => {
+    if (state.saved) void refreshAppData();
+  }, [state, refreshAppData]);
 
   return (
     <form action={action} className="flex flex-col gap-2">

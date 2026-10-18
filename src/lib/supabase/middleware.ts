@@ -24,9 +24,10 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Verifies the session token (locally when the project uses asymmetric signing keys)
+  // and refreshes it when expired, without a round trip to Supabase Auth on every request.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
