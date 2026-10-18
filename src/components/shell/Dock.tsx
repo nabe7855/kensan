@@ -42,28 +42,32 @@ function Side({ side, align }: { side: DockSide; align: "left" | "right" }) {
   );
 }
 
-function useTween(target: number): number {
+/** Counts from 0 up to `target` (ease-out) after `delay` ms; instant with reduced motion. */
+function useTween(target: number, delay = 0): number {
   const reduced = useReducedMotion();
   const [value, setValue] = useState(0);
   useEffect(() => {
     if (reduced) return setValue(target);
     let raf = 0;
-    const start = performance.now();
-    const from = 0;
+    const start = performance.now() + delay;
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / 700);
-      setValue(from + (target - from) * (1 - (1 - t) ** 3));
+      const t = Math.max(0, Math.min(1, (now - start) / 700));
+      setValue(target * (1 - (1 - t) ** 3));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, reduced]);
+  }, [target, delay, reduced]);
   return value;
 }
 
+/** Gap between segments lighting up when the gauge is drawn. */
+const SEGMENT_STAGGER_MS = 70;
+
 /** The raised middle: its outline with the quench-orange slopes, and the segmented half gauge. */
 function Hump({ hero }: { hero: DockHero }) {
-  const shown = useTween(hero.ratio);
+  // The track draws in segment by segment, then the lit part fills up.
+  const shown = useTween(hero.ratio, SEGMENT_STAGGER_MS * 5);
   const color = hero.warn ? COLORS.warn : COLORS.accent;
   const H = RISE + ROW_H;
   return (
@@ -88,13 +92,21 @@ function Hump({ hero }: { hero: DockHero }) {
         <g fill="none" strokeWidth="7">
           {gaugeSegments(HUMP_W / 2, 66, 44, shown).map((s, i) => (
             <g key={i}>
-              <path d={s.track} stroke={COLORS.border} />
+              <path
+                d={s.track}
+                stroke={COLORS.border}
+                className="animate-fade-in"
+                style={{ animationDelay: `${i * SEGMENT_STAGGER_MS}ms` }}
+              />
               {s.fill && !hero.empty && <path d={s.fill} stroke={color} />}
             </g>
           ))}
         </g>
       </svg>
-      <span className="absolute inset-x-0 flex flex-col items-center" style={{ top: 34 }}>
+      <span
+        className="animate-fade-in absolute inset-x-0 flex flex-col items-center"
+        style={{ top: 34, animationDelay: "120ms" }}
+      >
         <span
           className={cn(
             "num text-[26px] leading-none",
@@ -150,7 +162,8 @@ export function DockView({ pathname, metrics }: { pathname: string; metrics: Doc
               <span aria-hidden className="bg-accent/45 absolute top-[-1px] left-0 h-px w-12" />
               <Side side={metrics.right} align="right" />
             </div>
-            <Hump hero={metrics.hero} />
+            {/* Keyed by tab so the gauge draws itself again on every switch. */}
+            <Hump key={pathname} hero={metrics.hero} />
           </section>
         )}
         <ul className={cn("bg-card grid grid-cols-5", !metrics && "border-border border-t")}>
