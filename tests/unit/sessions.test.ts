@@ -19,6 +19,7 @@ const ex = {
 
 let t = 0;
 const set = (id: keyof typeof ex, setNo: number, w = 100, r = 8, type = "normal"): SessionSet => ({
+  id: `${id}-${setNo}-${t}`,
   exercise_id: id,
   set_no: setNo,
   set_type: type,
@@ -27,6 +28,7 @@ const set = (id: keyof typeof ex, setNo: number, w = 100, r = 8, type = "normal"
   rir: 2,
   is_pr: false,
   done_at: `2026-10-13T10:${String(t++).padStart(2, "0")}:00Z`,
+  bodyweight_kg: null,
   exercise: ex[id],
 });
 

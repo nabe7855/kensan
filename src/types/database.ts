@@ -866,6 +866,7 @@ export type Database = {
       }
       workout_sets: {
         Row: {
+          bodyweight_kg: number | null
           created_at: string
           done_at: string | null
           exercise_id: string
@@ -881,6 +882,7 @@ export type Database = {
           workout_id: string
         }
         Insert: {
+          bodyweight_kg?: number | null
           created_at?: string
           done_at?: string | null
           exercise_id: string
@@ -896,6 +898,7 @@ export type Database = {
           workout_id: string
         }
         Update: {
+          bodyweight_kg?: number | null
           created_at?: string
           done_at?: string | null
           exercise_id?: string

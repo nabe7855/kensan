@@ -47,6 +47,7 @@ export type HistorySet = {
   reps: number | null;
   rir: number | null;
   done_at: string | null;
+  bodyweight_kg: number | null;
 };
 
 export const trainingKeys = {
@@ -98,7 +99,9 @@ export function fetchHistory(exerciseIds: string[]) {
   return unwrap<HistorySet[]>(
     getSupabase()
       .from("workout_sets")
-      .select("workout_id, exercise_id, set_no, set_type, weight_kg, reps, rir, done_at")
+      .select(
+        "workout_id, exercise_id, set_no, set_type, weight_kg, reps, rir, done_at, bodyweight_kg",
+      )
       .in("exercise_id", exerciseIds)
       .not("done_at", "is", null)
       .order("done_at", { ascending: false })
@@ -158,7 +161,7 @@ export function useSessions(from: string, to: string) {
         getSupabase()
           .from("workouts")
           .select(
-            "id, started_at, ended_at, pump, soreness, joint, load_feel, workout_sets(exercise_id, set_no, set_type, weight_kg, reps, rir, is_pr, done_at, exercises(name_ja, muscle_groups))",
+            "id, started_at, ended_at, pump, soreness, joint, load_feel, workout_sets(id, exercise_id, set_no, set_type, weight_kg, reps, rir, is_pr, done_at, bodyweight_kg, exercises(name_ja, muscle_groups))",
           )
           .gte("started_at", from)
           .lt("started_at", to)

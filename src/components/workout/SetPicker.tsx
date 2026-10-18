@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Wheel } from "@/components/ui/wheel";
 import { joinKg, KG_FRACTIONS, MAX_KG, MAX_REPS, MAX_RIR, range, splitKg } from "@/lib/wheel";
 
-export type SetValues = { weight: number; reps: number; rir: number };
+/** `weight` is the total load; `bw` is the body weight in it for a bodyweight set. */
+export type SetValues = { weight: number; reps: number; rir: number; bw?: number | null };
 
 const WHOLE_KG = range(MAX_KG);
 const REPS = range(MAX_REPS);
 const RIR = range(MAX_RIR);
 const fracLabel = (f: number) => `.${String(Math.round(f * 100)).padStart(2, "0")}`;
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
 
 /**
  * Bottom panel with wheels for one set: kilograms (whole + quarter), reps and optionally RIR.
@@ -21,6 +24,7 @@ export function SetPicker({
   title,
   initial,
   previous,
+  bodyweight,
   showRir,
   canComplete,
   onApply,
@@ -29,21 +33,49 @@ export function SetPicker({
 }: {
   title: string;
   initial: SetValues;
-  previous?: { weight_kg: number | null; reps: number | null } | null;
+  previous?: {
+    weight_kg: number | null;
+    reps: number | null;
+    bodyweight_kg?: number | null;
+  } | null;
+  /** The day's body weight (or the latest before it), for bodyweight exercises. */
+  bodyweight?: { kg: number; date: string } | null;
   showRir: boolean;
   canComplete: boolean;
   onApply: (v: SetValues) => void;
   onComplete: (v: SetValues) => void;
   onClose: () => void;
 }) {
-  const start = splitKg(initial.weight);
+  // A set already saved as bodyweight keeps the weight it had; new ones use the day's weight.
+  const bwKg = initial.bw ?? bodyweight?.kg ?? null;
+  const [bwOn, setBwOn] = useState(initial.bw != null && bwKg !== null);
+  // With bodyweight on, the kg wheels are the added load (加重); otherwise the total.
+  const start = splitKg(
+    bwOn && bwKg !== null ? Math.max(0, initial.weight - bwKg) : initial.weight,
+  );
   const [whole, setWhole] = useState(start.whole);
   const [frac, setFrac] = useState(start.frac);
   const [reps, setReps] = useState(initial.reps);
   const [rir, setRir] = useState(initial.rir);
   // Remount the wheels when jumping to last time's numbers so they scroll there.
   const [jump, setJump] = useState(0);
-  const values = (): SetValues => ({ weight: joinKg(whole, frac), reps, rir });
+  const wheelKg = joinKg(whole, frac);
+  const values = (): SetValues =>
+    bwOn && bwKg !== null
+      ? { weight: r2(bwKg + wheelKg), reps, rir, bw: bwKg }
+      : { weight: wheelKg, reps, rir, bw: null };
+  const setWheels = (kg: number) => {
+    const p = splitKg(kg);
+    setWhole(p.whole);
+    setFrac(p.frac);
+    setJump((n) => n + 1);
+  };
+  const toggleBw = () => {
+    if (bwKg === null) return;
+    // Keep the total the same when switching: total ↔ body weight + added.
+    setWheels(bwOn ? r2(bwKg + wheelKg) : Math.max(0, r2(wheelKg - bwKg)));
+    setBwOn(!bwOn);
+  };
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal aria-label={title}>
@@ -61,15 +93,23 @@ export function SetPicker({
               <button
                 type="button"
                 onClick={() => {
-                  const p = splitKg(previous.weight_kg!);
-                  setWhole(p.whole);
-                  setFrac(p.frac);
+                  const prevBw = previous.bodyweight_kg ?? null;
+                  if (prevBw !== null && bwKg !== null) {
+                    setBwOn(true);
+                    setWheels(Math.max(0, r2(previous.weight_kg! - prevBw)));
+                  } else {
+                    setBwOn(false);
+                    setWheels(previous.weight_kg!);
+                  }
                   setReps(previous.reps!);
-                  setJump((n) => n + 1);
                 }}
                 className="border-border text-muted num h-10 rounded-md border px-3 text-sm"
               >
-                前回 {previous.weight_kg}×{previous.reps}
+                前回{" "}
+                {previous.bodyweight_kg != null
+                  ? `自重${previous.weight_kg! > previous.bodyweight_kg ? `+${r2(previous.weight_kg! - previous.bodyweight_kg)}` : ""}`
+                  : previous.weight_kg}
+                ×{previous.reps}
               </button>
             )}
             <button
@@ -83,12 +123,42 @@ export function SetPicker({
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={bwOn}
+            disabled={bwKg === null}
+            onClick={toggleBw}
+            className={
+              bwOn
+                ? "border-accent text-accent h-10 rounded-md border px-3 text-sm font-bold"
+                : "border-border text-muted h-10 rounded-md border px-3 text-sm disabled:opacity-40"
+            }
+          >
+            自重
+          </button>
+          <span className="text-muted min-w-0 text-right text-xs leading-snug">
+            {bwKg === null ? (
+              "体重の記録がないため使えません"
+            ) : bwOn ? (
+              <>
+                体重 <span className="num text-fg">{bwKg}</span>kg
+                {bodyweight && initial.bw == null && `（${md(bodyweight.date)}）`}＋ 加重 ＝ 合計{" "}
+                <span className="num text-fg text-sm">{r2(bwKg + wheelKg)}</span>kg
+              </>
+            ) : (
+              "懸垂・ディップスなどは自重に"
+            )}
+          </span>
+        </div>
+
         <div key={jump} className="flex items-center gap-1">
           <Wheel
             values={WHOLE_KG}
             value={whole}
             onChange={setWhole}
-            label="重さ（kg）"
+            label={bwOn ? "加重（kg）" : "重さ（kg）"}
             className="flex-[1.3]"
           />
           <Wheel
@@ -99,7 +169,7 @@ export function SetPicker({
             format={fracLabel}
             className="flex-1"
           />
-          <span className="text-muted text-sm">kg</span>
+          <span className="text-muted text-sm">{bwOn ? "加重" : "kg"}</span>
           <span className="text-ghost px-1 text-lg">×</span>
           <Wheel values={REPS} value={reps} onChange={setReps} label="回数" className="flex-1" />
           <span className="text-muted text-sm">回</span>

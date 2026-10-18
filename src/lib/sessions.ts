@@ -13,6 +13,7 @@ export const BODY_PARTS = [
 export type BodyPart = (typeof BODY_PARTS)[number]["key"];
 
 export type SessionSet = {
+  id: string;
   exercise_id: string;
   set_no: number;
   set_type: string;
@@ -21,6 +22,7 @@ export type SessionSet = {
   rir: number | null;
   is_pr: boolean;
   done_at: string | null;
+  bodyweight_kg: number | null;
   exercise: { name_ja: string; muscle_groups: string[] } | null;
 };
 

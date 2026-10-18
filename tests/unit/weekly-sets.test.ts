@@ -3,6 +3,7 @@ import type { Session } from "@/lib/sessions";
 import { perKg, rangeStatus, SET_RANGES, weeklyPartSets } from "@/lib/weekly-sets";
 
 const set = (groups: string[], setType = "normal", reps: number | null = 8) => ({
+  id: groups.join() + setType,
   exercise_id: groups.join(),
   set_no: 1,
   set_type: setType,
@@ -11,6 +12,7 @@ const set = (groups: string[], setType = "normal", reps: number | null = 8) => (
   rir: null,
   is_pr: false,
   done_at: null,
+  bodyweight_kg: null,
   exercise: { name_ja: "", muscle_groups: groups },
 });
 
