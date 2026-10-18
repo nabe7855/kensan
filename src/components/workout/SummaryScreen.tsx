@@ -8,8 +8,10 @@ import { ScaleRow } from "@/components/condition/ScaleRow";
 import { Button } from "@/components/ui/button";
 import { kvDelete, kvGet } from "@/lib/offline/db";
 import { percentDiff } from "@/lib/progress";
+import { readActiveWorkout, saveActiveWorkout } from "@/lib/useActiveWorkout";
 import { cn } from "@/lib/utils";
-import { SUMMARY_KEY, type StoredSummary } from "./WorkoutScreen";
+import type { ActiveWorkout } from "@/lib/workout";
+import { LAST_FINISHED_KEY, SUMMARY_KEY, type StoredSummary } from "./WorkoutScreen";
 
 const FEEL = [
   { value: 1, label: "低" },
@@ -75,6 +77,19 @@ export function SummaryScreen() {
 
   if (summary === undefined) return <div className="surface h-96 animate-pulse" aria-busy />;
   if (summary === null) return null;
+
+  /** Back into the workout just finished, to keep going or fix it; saving again updates it. */
+  async function resume() {
+    const last = await kvGet<ActiveWorkout>(LAST_FINISHED_KEY);
+    if (!last || last.id !== summary!.workoutId) return;
+    if (await readActiveWorkout()) {
+      window.alert("進行中のワークアウトがあります。先に完了するか破棄してください。");
+      return;
+    }
+    await saveActiveWorkout(last);
+    await kvDelete(SUMMARY_KEY);
+    router.push("/training/workout");
+  }
 
   async function save() {
     if (Object.values(feel).some((v) => v !== null)) {
@@ -160,6 +175,9 @@ export function SummaryScreen() {
 
       <Button size="lg" className="mt-2" onClick={save}>
         保存
+      </Button>
+      <Button variant="ghost" onClick={() => void resume()}>
+        トレーニングを再開（間違えて終了したとき）
       </Button>
     </div>
   );

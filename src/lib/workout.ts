@@ -10,6 +10,8 @@ export type DraftSet = {
   reps: string;
   rir: string;
   doneAt: string | null;
+  /** Body weight used for a bodyweight set; `weight` is then the total (body + added). */
+  bw?: number | null;
 };
 
 export type DraftExercise = {
@@ -26,6 +28,8 @@ export type ActiveWorkout = {
   current: number;
   exercises: DraftExercise[];
   rest: { endsAt: number; totalSec: number } | null;
+  /** Set when reopening a finished workout: keep its end time, and drop sets removed now. */
+  editing?: { endedAt: string; savedSetIds: string[] } | null;
 };
 
 export type PlanItem = {
@@ -141,6 +145,73 @@ export function toRows(w: ActiveWorkout, userId: string, prIndexes: number[], en
       rir: num(s.draft.rir) === null ? null : Math.round(num(s.draft.rir)!),
       is_pr: pr.has(i),
       done_at: s.draft.doneAt,
+      bodyweight_kg: s.draft.bw ?? null,
+    })),
+  };
+}
+
+/** Sets saved before (when editing) that are no longer done or no longer there. */
+export function removedSetIds(w: ActiveWorkout): string[] {
+  if (!w.editing) return [];
+  const kept = new Set(loggedSets(w).map((s) => s.draft.id));
+  return w.editing.savedSetIds.filter((id) => !kept.has(id));
+}
+
+export type SavedSet = {
+  id: string;
+  exercise_id: string;
+  set_no: number;
+  set_type: string;
+  weight_kg: number | null;
+  reps: number | null;
+  rir: number | null;
+  done_at: string | null;
+  bodyweight_kg?: number | null;
+};
+
+const str = (n: number | null | undefined) => (n == null ? "" : String(n));
+
+/** A finished workout reopened for editing, exercises in the order they were done. */
+export function workoutFromSaved(
+  saved: { id: string; title: string; started_at: string; ended_at: string | null },
+  sets: SavedSet[],
+  now: Date = new Date(),
+): ActiveWorkout {
+  const order: string[] = [];
+  const byExercise = new Map<string, SavedSet[]>();
+  const sorted = [...sets].sort(
+    (a, b) => (a.done_at ?? "").localeCompare(b.done_at ?? "") || a.set_no - b.set_no,
+  );
+  for (const s of sorted) {
+    if (!byExercise.has(s.exercise_id)) {
+      order.push(s.exercise_id);
+      byExercise.set(s.exercise_id, []);
+    }
+    byExercise.get(s.exercise_id)!.push(s);
+  }
+  return {
+    id: saved.id,
+    routineId: null,
+    title: saved.title,
+    startedAt: saved.started_at,
+    current: 0,
+    rest: null,
+    editing: { endedAt: saved.ended_at ?? now.toISOString(), savedSetIds: sets.map((s) => s.id) },
+    exercises: order.map((exerciseId) => ({
+      exerciseId,
+      restSec: DEFAULT_REST_SEC,
+      sets: byExercise
+        .get(exerciseId)!
+        .sort((a, b) => a.set_no - b.set_no)
+        .map((s) => ({
+          id: s.id,
+          setType: s.set_type as SetType,
+          weight: str(s.weight_kg),
+          reps: str(s.reps),
+          rir: str(s.rir),
+          doneAt: s.done_at ?? now.toISOString(),
+          bw: s.bodyweight_kg ?? null,
+        })),
     })),
   };
 }
@@ -148,4 +219,15 @@ export function toRows(w: ActiveWorkout, userId: string, prIndexes: number[], en
 /** Indexes (into loggedSets) of PR sets, for toRows. */
 export function prIndexes(w: ActiveWorkout, previousBest: Map<string, number>): number[] {
   return detectPRs(loggedSets(w), previousBest);
+}
+
+/** Body weight for a training day: that day's record, else the latest one before it. */
+export function bodyweightOn(
+  records: { date: string; weight_kg: number | null }[],
+  date: string,
+): { kg: number; date: string } | null {
+  const hit = records
+    .filter((r) => r.weight_kg != null && r.date <= date)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  return hit ? { kg: hit.weight_kg!, date: hit.date } : null;
 }

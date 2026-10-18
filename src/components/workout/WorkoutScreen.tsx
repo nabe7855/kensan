@@ -8,6 +8,9 @@ import { useSync } from "@/components/providers/SyncProvider";
 import { ExercisePicker } from "@/components/training/ExercisePicker";
 import { Button } from "@/components/ui/button";
 import { kvSet } from "@/lib/offline/db";
+import { addDaysISO } from "@/lib/prep";
+import { useCheckins } from "@/lib/queries/checkins";
+import { jstDate } from "@/lib/sessions";
 import {
   previousSetsByExercise,
   useExerciseHistory,
@@ -23,8 +26,10 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_REST_SEC,
   DEFAULT_SETS,
+  bodyweightOn,
   emptySet,
   prIndexes,
+  removedSetIds,
   summarize,
   toRows,
   type DraftSet,
@@ -39,6 +44,8 @@ import { prevFor, SetTable } from "./SetTable";
 import { StepperBar } from "./StepperBar";
 
 export const SUMMARY_KEY = "lastWorkoutSummary";
+/** The workout just finished, so it can be reopened from the summary screen. */
+export const LAST_FINISHED_KEY = "lastFinishedWorkout";
 
 export type StoredSummary = {
   workoutId: string;
@@ -62,8 +69,16 @@ export function WorkoutScreen() {
   const { data: exercises = [] } = useExercises();
   const { data: notes } = useExerciseNotes();
   const ids = useMemo(() => workout?.exercises.map((e) => e.exerciseId) ?? [], [workout]);
-  const history = useExerciseHistory(ids);
+  const historyQuery = useExerciseHistory(ids);
+  // When editing a finished workout, its own saved sets are not "last time".
+  const history = useMemo(
+    () => ({ data: historyQuery.data?.filter((h) => h.workout_id !== workout?.id) }),
+    [historyQuery.data, workout?.id],
+  );
   const previous = useMemo(() => previousSetsByExercise(history.data ?? []), [history.data]);
+  const day = jstDate(workout?.startedAt ?? new Date().toISOString());
+  const checkins = useCheckins(addDaysISO(day, -14), day);
+  const bodyweight = useMemo(() => bodyweightOn(checkins.data ?? [], day), [checkins.data, day]);
   const names = useMemo(() => new Map(exercises.map((e) => [e.id, e.name_ja])), [exercises]);
   const pastByExercise = useMemo(() => {
     const map = new Map<
@@ -182,7 +197,16 @@ export function WorkoutScreen() {
           ? {
               ...ex,
               sets: ex.sets.map((x, k) =>
-                k === i ? { ...x, weight, reps, rir, doneAt: new Date().toISOString() } : x,
+                k === i
+                  ? {
+                      ...x,
+                      weight,
+                      reps,
+                      rir,
+                      bw: picked ? (picked.bw ?? null) : x.bw,
+                      doneAt: new Date().toISOString(),
+                    }
+                  : x,
               ),
             }
           : ex,
@@ -208,6 +232,15 @@ export function WorkoutScreen() {
       }
       return;
     }
+    // A finish button is easy to hit by mistake; confirm (and say what will be saved).
+    if (
+      !window.confirm(
+        workout.editing
+          ? `変更を保存しますか？（確定 ${doneCount} セット）`
+          : `トレーニングを終了しますか？（確定 ${doneCount} セット）\n終了後も「トレーニングを再開」で戻れます。`,
+      )
+    )
+      return;
     setFinishing(true);
     const best = bestByExercise(
       (history.data ?? []).map((h) => ({
@@ -217,7 +250,8 @@ export function WorkoutScreen() {
         reps: h.reps,
       })),
     );
-    const endedAt = new Date();
+    // An edited workout keeps the time it originally ended.
+    const endedAt = workout.editing ? new Date(workout.editing.endedAt) : new Date();
     const summary = summarize(workout, best, endedAt);
     const rows = toRows(workout, userId, prIndexes(workout, best), endedAt.toISOString());
     const stored: StoredSummary = {
@@ -261,6 +295,14 @@ export function WorkoutScreen() {
       ),
     };
     await kvSet(SUMMARY_KEY, stored);
+    // Kept so the summary screen can reopen it ("トレーニングを再開").
+    await kvSet(LAST_FINISHED_KEY, {
+      ...workout,
+      editing: { endedAt: endedAt.toISOString(), savedSetIds: rows.sets.map((s) => s.id) },
+    });
+    for (const id of removedSetIds(workout)) {
+      await write({ table: "workout_sets", kind: "delete", match: { id, user_id: userId } });
+    }
     await write({ table: "workouts", kind: "upsert", payload: rows.workout });
     if (rows.sets.length > 0) {
       await write({ table: "workout_sets", kind: "upsert", payload: rows.sets });
@@ -270,7 +312,10 @@ export function WorkoutScreen() {
   }
 
   async function discard() {
-    if (!window.confirm("このワークアウトを破棄します。入力した内容は残りません。")) return;
+    const message = workout?.editing
+      ? "編集をやめます。今回の変更は保存されません（元の記録はそのままです）。"
+      : "このワークアウトを破棄します。入力した内容は残りません。";
+    if (!window.confirm(message)) return;
     await clear();
     router.push("/training");
   }
@@ -360,6 +405,7 @@ export function WorkoutScreen() {
             onFocusRow={setFocusRow}
             showRir={showRir}
             repPrs={currentRepPrs}
+            bodyweight={bodyweight}
           />
 
           <div className="flex gap-2">
@@ -408,10 +454,10 @@ export function WorkoutScreen() {
 
       <div className="mt-4 flex flex-col gap-2">
         <Button size="lg" disabled={finishing} onClick={finish}>
-          ワークアウト完了
+          {workout.editing ? "変更を保存" : "ワークアウト完了"}
         </Button>
         <Button variant="ghost" onClick={discard}>
-          破棄
+          {workout.editing ? "編集をやめる（保存しない）" : "破棄"}
         </Button>
       </div>
 

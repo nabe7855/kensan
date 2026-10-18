@@ -16,6 +16,11 @@ import { averageInterval, formatRest, setIntervals } from "@/lib/rest-timer";
 import { exercisesOf, partsText, sessionParts, sessionVolume } from "@/lib/sessions";
 import { SET_TYPES } from "@/lib/strength";
 import { useAppData } from "@/components/providers/AppDataProvider";
+import { useSync } from "@/components/providers/SyncProvider";
+import { weightLabel } from "@/components/workout/SetTable";
+import { readActiveWorkout, saveActiveWorkout } from "@/lib/useActiveWorkout";
+import { workoutFromSaved } from "@/lib/workout";
+import type { Session } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
 
 const FEEL = ["", "低", "中", "高", "最大"];
@@ -48,7 +53,50 @@ function Section({
 export function DayReport({ date }: { date: string }) {
   const router = useRouter();
   const today = todayISO();
-  const { trackLibido } = useAppData();
+  const { trackLibido, userId } = useAppData();
+  const { write } = useSync();
+
+  /** Reopen a finished workout in the workout screen to fix weights, reps or sets. */
+  async function editSession(s: Session) {
+    if (await readActiveWorkout()) {
+      window.alert("進行中のワークアウトがあります。先に完了するか破棄してから編集してください。");
+      return;
+    }
+    await saveActiveWorkout(
+      workoutFromSaved(
+        {
+          id: s.id,
+          title: partsText(sessionParts(s)) || "トレーニング",
+          started_at: s.started_at,
+          ended_at: s.ended_at,
+        },
+        s.sets.map((x) => ({
+          id: x.id,
+          exercise_id: x.exercise_id,
+          set_no: x.set_no,
+          set_type: x.set_type,
+          weight_kg: x.weight_kg,
+          reps: x.reps,
+          rir: x.rir,
+          done_at: x.done_at,
+          bodyweight_kg: x.bodyweight_kg,
+        })),
+      ),
+    );
+    router.push("/training/workout");
+  }
+
+  /** Delete a workout and its sets (e.g. one entered twice by mistake). */
+  async function deleteSession(s: Session) {
+    const name = partsText(sessionParts(s)) || "トレーニング";
+    if (
+      !window.confirm(
+        `${hm(s.started_at)} の「${name}」（${s.sets.length} セット）を削除します。元に戻せません。`,
+      )
+    )
+      return;
+    await write({ table: "workouts", kind: "delete", match: { id: s.id, user_id: userId } });
+  }
   const checkins = useCheckins(date, date);
   const sessions = useSessions(jstMidnight(date), jstMidnight(addDaysISO(date, 1)));
   const meals = useDayMeals(date);
@@ -177,7 +225,8 @@ export function DayReport({ date }: { date: string }) {
                                       x.is_pr && "text-accent",
                                     )}
                                   >
-                                    {x.weight_kg ?? "—"}×{x.reps ?? "—"}
+                                    {weightLabel(x.weight_kg, x.bodyweight_kg) || "—"}×
+                                    {x.reps ?? "—"}
                                     {x.set_type !== "normal" && x.set_type !== "warmup" && (
                                       <span className="text-accent ml-0.5 text-[10px]">
                                         {SET_TYPES.find((t) => t.key === x.set_type)?.short}
@@ -207,6 +256,22 @@ export function DayReport({ date }: { date: string }) {
                             .join(" ・ ")}
                         </p>
                       )}
+                      <div className="border-border flex gap-2 border-t pt-2">
+                        <button
+                          type="button"
+                          onClick={() => void editSession(s)}
+                          className="text-accent h-10 flex-1 rounded-md text-sm underline underline-offset-4"
+                        >
+                          このトレを編集
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteSession(s)}
+                          className="text-ghost h-10 flex-1 rounded-md text-sm underline underline-offset-4"
+                        >
+                          削除
+                        </button>
+                      </div>
                     </div>
                   );
                 })
