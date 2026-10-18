@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRestTimer } from "@/components/providers/RestTimerProvider";
 import { canVibrate } from "@/lib/rest-alert";
+import { canKeepAwake } from "@/lib/useWakeLock";
 import { cn } from "@/lib/utils";
 
 function Switch({
@@ -54,7 +55,11 @@ export function RestAlertSettings() {
   const { alerts, setAlerts, preview } = useRestTimer();
   // navigator only exists in the browser; decide after mount to match the server render.
   const [vibrateOk, setVibrateOk] = useState(true);
-  useEffect(() => setVibrateOk(canVibrate()), []);
+  const [awakeOk, setAwakeOk] = useState(true);
+  useEffect(() => {
+    setVibrateOk(canVibrate());
+    setAwakeOk(canKeepAwake());
+  }, []);
 
   return (
     <div className="surface flex flex-col gap-1 px-4 py-2">
@@ -71,6 +76,17 @@ export function RestAlertSettings() {
         checked={alerts.vibrate && vibrateOk}
         disabled={!vibrateOk}
         onChange={(vibrate) => setAlerts({ ...alerts, vibrate })}
+      />
+      <Switch
+        label="トレ中は画面を消さない"
+        note={
+          awakeOk
+            ? "ワークアウト中とレスト中は画面がつきっぱなしになり、レストの終わりに確実に音が鳴ります"
+            : "このブラウザは対応していません。Safari / Chrome の最新版で開いてください"
+        }
+        checked={alerts.keepAwake && awakeOk}
+        disabled={!awakeOk}
+        onChange={(keepAwake) => setAlerts({ ...alerts, keepAwake })}
       />
       <button
         type="button"
