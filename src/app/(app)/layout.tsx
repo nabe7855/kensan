@@ -5,9 +5,8 @@ import { RestTimerProvider } from "@/components/providers/RestTimerProvider";
 import { SyncProvider } from "@/components/providers/SyncProvider";
 import { GlobalRestBar } from "@/components/rest/GlobalRestBar";
 import { AppHeader } from "@/components/shell/AppHeader";
-import { BottomTabBar } from "@/components/shell/BottomTabBar";
 import { KeyboardWatcher } from "@/components/shell/KeyboardWatcher";
-import { StatusStrip } from "@/components/shell/StatusStrip";
+import { Dock, DockSpacer } from "@/components/shell/Dock";
 import { decodeSplit } from "@/lib/cut-phases";
 import { getCurrentProfile } from "@/lib/profile";
 
@@ -44,9 +43,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <main className="mx-auto w-full max-w-[480px] px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]">
               {children}
               <GlobalRestBar />
-              <StatusStrip />
+              <DockSpacer />
             </main>
-            <BottomTabBar />
+            <Dock />
             <KeyboardWatcher />
           </RestTimerProvider>
         </SyncProvider>
