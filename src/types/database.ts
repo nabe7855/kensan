@@ -123,6 +123,7 @@ export type Database = {
           libido: number | null
           mood: number | null
           note: string | null
+          pain_areas: string[]
           rhr: number | null
           sleep: number | null
           temp_c: number | null
@@ -140,6 +141,7 @@ export type Database = {
           libido?: number | null
           mood?: number | null
           note?: string | null
+          pain_areas?: string[]
           rhr?: number | null
           sleep?: number | null
           temp_c?: number | null
@@ -157,6 +159,7 @@ export type Database = {
           libido?: number | null
           mood?: number | null
           note?: string | null
+          pain_areas?: string[]
           rhr?: number | null
           sleep?: number | null
           temp_c?: number | null
@@ -937,6 +940,7 @@ export type Database = {
           id: string
           joint: number | null
           load_feel: number | null
+          pain_areas: string[]
           pump: number | null
           routine_id: string | null
           soreness: number | null
@@ -950,6 +954,7 @@ export type Database = {
           id?: string
           joint?: number | null
           load_feel?: number | null
+          pain_areas?: string[]
           pump?: number | null
           routine_id?: string | null
           soreness?: number | null
@@ -963,6 +968,7 @@ export type Database = {
           id?: string
           joint?: number | null
           load_feel?: number | null
+          pain_areas?: string[]
           pump?: number | null
           routine_id?: string | null
           soreness?: number | null
