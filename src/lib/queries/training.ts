@@ -161,7 +161,7 @@ export function useSessions(from: string, to: string) {
         getSupabase()
           .from("workouts")
           .select(
-            "id, started_at, ended_at, pump, soreness, joint, load_feel, workout_sets(id, exercise_id, set_no, set_type, weight_kg, reps, rir, is_pr, done_at, bodyweight_kg, exercises(name_ja, muscle_groups))",
+            "id, started_at, ended_at, pump, soreness, joint, load_feel, pain_areas, workout_sets(id, exercise_id, set_no, set_type, weight_kg, reps, rir, is_pr, done_at, bodyweight_kg, exercises(name_ja, muscle_groups))",
           )
           .gte("started_at", from)
           .lt("started_at", to)
