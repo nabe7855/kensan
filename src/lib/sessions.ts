@@ -34,6 +34,7 @@ export type Session = {
   soreness: number | null;
   joint: number | null;
   load_feel: number | null;
+  pain_areas?: string[];
   sets: SessionSet[];
 };
 

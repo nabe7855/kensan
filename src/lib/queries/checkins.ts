@@ -16,9 +16,11 @@ export type CheckinRow = {
   note: string | null;
   rhr: number | null;
   temp_c: number | null;
+  pain_areas: string[];
 };
 
-const COLUMNS = "date, weight_kg, hunger, sleep, mood, energy, libido, bowel, note, rhr, temp_c";
+const COLUMNS =
+  "date, weight_kg, hunger, sleep, mood, energy, libido, bowel, note, rhr, temp_c, pain_areas";
 
 export const checkinKeys = {
   all: ["checkins"] as const,

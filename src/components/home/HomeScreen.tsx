@@ -12,6 +12,7 @@ import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
 import { headlineWeight } from "@/lib/weight-stats";
 import { ContestCard } from "./ContestCard";
+import { SafetyCard } from "./SafetyCard";
 import { NutritionSummary } from "./NutritionSummary";
 import { PhaseCard } from "./PhaseCard";
 import { TodayTrainingCard } from "./TodayTrainingCard";
@@ -93,6 +94,7 @@ export function HomeScreen() {
         </section>
       )}
 
+      <SafetyCard />
       <ContestCard />
       <PhaseCard />
       <NutritionSummary today={today} />

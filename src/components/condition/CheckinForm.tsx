@@ -8,6 +8,7 @@ import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import { activeItems, type ConditionKey } from "@/lib/condition";
 import { checkinKeys, type CheckinRow } from "@/lib/queries/checkins";
+import { PainPicker } from "./PainPicker";
 import { ScaleRow } from "./ScaleRow";
 
 const ONE_TO_FIVE = [1, 2, 3, 4, 5].map((v) => ({ value: v, label: String(v) }));
@@ -45,6 +46,7 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
   });
   const [bowel, setBowel] = useState<string | null>(existing?.bowel ?? null);
   const [note, setNote] = useState(existing?.note ?? "");
+  const [pain, setPain] = useState<string[]>(existing?.pain_areas ?? []);
   const [showDetail, setShowDetail] = useState(existing?.rhr != null || existing?.temp_c != null);
   const [rhr, setRhr] = useState(existing?.rhr?.toString() ?? "");
   const [temp, setTemp] = useState(existing?.temp_c?.toFixed(1) ?? "");
@@ -71,6 +73,7 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
       note: note.trim() || null,
       rhr: rhrNum === null ? null : Math.round(rhrNum),
       temp_c: tempNum,
+      pain_areas: pain,
     };
     for (const [key, rows] of queryClient.getQueriesData<CheckinRow[]>({
       queryKey: checkinKeys.all,
@@ -125,6 +128,7 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
         />
       ))}
       <ScaleRow label="便通" options={BOWEL} value={bowel} onChange={setBowel} />
+      <PainPicker value={pain} onChange={setPain} />
 
       <input
         value={note}

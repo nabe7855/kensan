@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
+import { PainPicker } from "@/components/condition/PainPicker";
 import { ScaleRow } from "@/components/condition/ScaleRow";
 import { Button } from "@/components/ui/button";
 import { kvDelete, kvGet } from "@/lib/offline/db";
@@ -67,6 +68,7 @@ export function SummaryScreen() {
     joint: null,
     load_feel: null,
   });
+  const [pain, setPain] = useState<string[]>([]);
 
   useEffect(() => {
     void kvGet<StoredSummary>(SUMMARY_KEY).then((s) => setSummary(s ?? null));
@@ -92,12 +94,12 @@ export function SummaryScreen() {
   }
 
   async function save() {
-    if (Object.values(feel).some((v) => v !== null)) {
+    if (Object.values(feel).some((v) => v !== null) || pain.length > 0) {
       await write({
         table: "workouts",
         kind: "update",
         match: { id: summary!.workoutId, user_id: userId },
-        payload: feel,
+        payload: { ...feel, pain_areas: pain },
       });
     }
     await kvDelete(SUMMARY_KEY);
@@ -171,6 +173,7 @@ export function SummaryScreen() {
             onChange={(v) => setFeel((s) => ({ ...s, [f.key]: v }))}
           />
         ))}
+        <PainPicker value={pain} onChange={setPain} label="トレ中・トレ後に痛んだ場所" />
       </section>
 
       <Button size="lg" className="mt-2" onClick={save}>
