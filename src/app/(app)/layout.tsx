@@ -1,42 +1,22 @@
-import { redirect } from "next/navigation";
-import { AppDataProvider, type TrainingPhase } from "@/components/providers/AppDataProvider";
+import { AppDataProvider } from "@/components/providers/AppDataProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { RestTimerProvider } from "@/components/providers/RestTimerProvider";
 import { SyncProvider } from "@/components/providers/SyncProvider";
 import { GlobalRestBar } from "@/components/rest/GlobalRestBar";
 import { AppHeader } from "@/components/shell/AppHeader";
-import { KeyboardWatcher } from "@/components/shell/KeyboardWatcher";
 import { Dock, DockSpacer } from "@/components/shell/Dock";
-import { decodeSplit } from "@/lib/cut-phases";
-import { getCurrentProfile } from "@/lib/profile";
+import { KeyboardWatcher } from "@/components/shell/KeyboardWatcher";
+import { UpdateWatcher } from "@/components/shell/UpdateWatcher";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { supabase, user, profile } = await getCurrentProfile();
-  if (!profile?.onboarded_at) redirect("/onboarding");
-
-  const { data: prep } = await supabase
-    .from("preps")
-    .select(
-      "id, contest_name, contest_date, start_date, start_weight_kg, target_weight_kg, weekly_rate_pct, why_text, phase_split",
-    )
-    .eq("is_active", true)
-    .maybeSingle();
-
+/**
+ * The signed-in app frame. It reads nothing on the server, so the main tabs are static and
+ * Next.js can prefetch them; the middleware guards sign-in and AppDataProvider loads the
+ * profile and prep on the device.
+ */
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
-      <AppDataProvider
-        value={{
-          userId: user.id,
-          displayName: profile.display_name ?? "",
-          trackLibido: profile.track_libido,
-          mealSlots: profile.meal_slots,
-          showRir: profile.show_rir,
-          trainingPhase: profile.training_phase as TrainingPhase,
-          plateauAlerts: profile.plateau_alerts,
-          mutedExercises: profile.muted_exercises,
-          prep: prep ? { ...prep, phase_split: decodeSplit(prep.phase_split) } : null,
-        }}
-      >
+      <AppDataProvider>
         <SyncProvider>
           <RestTimerProvider>
             <AppHeader />
@@ -47,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </main>
             <Dock />
             <KeyboardWatcher />
+            <UpdateWatcher />
           </RestTimerProvider>
         </SyncProvider>
       </AppDataProvider>

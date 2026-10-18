@@ -1,8 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useAppData, type TrainingPhase } from "@/components/providers/AppDataProvider";
+import {
+  useAppData,
+  type TrainingPhase,
+  useRefreshAppData,
+} from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { RestAlertSettings } from "@/components/rest/RestAlertSettings";
 import { cn } from "@/lib/utils";
@@ -56,7 +59,7 @@ function Toggle({
 
 /** Training preferences saved straight to the profile. */
 export function TrainingSettings() {
-  const router = useRouter();
+  const refreshAppData = useRefreshAppData();
   const { userId, showRir, trainingPhase, plateauAlerts, mutedExercises } = useAppData();
   const [muted, setMuted] = useState(mutedExercises.length);
   const { write } = useSync();
@@ -75,7 +78,7 @@ export function TrainingSettings() {
         plateau_alerts: next.plateauAlerts,
       },
     });
-    router.refresh();
+    void refreshAppData();
   }
 
   return (
@@ -125,7 +128,7 @@ export function TrainingSettings() {
                 match: { user_id: userId },
                 payload: { muted_exercises: [] },
               });
-              router.refresh();
+              void refreshAppData();
             }}
             className="text-muted h-10 text-xs underline underline-offset-4"
           >
