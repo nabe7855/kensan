@@ -8,7 +8,7 @@ import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import { FOOD_GROUPS, foodGroupLabel, hasUnit } from "@/lib/food-groups";
-import { type Food } from "@/lib/nutrition";
+import { foodKcal, type Food } from "@/lib/nutrition";
 import {
   nutritionKeys,
   useFoodSearch,
@@ -27,7 +27,7 @@ type Props = {
 
 function FoodRow({ food, onPick }: { food: Food; onPick: () => void }) {
   const unit = hasUnit(food) ? food : null;
-  const serving = unit ? Math.round((food.kcal * unit.unit_grams) / 100) : null;
+  const serving = unit ? Math.round((foodKcal(food) * unit.unit_grams) / 100) : null;
   return (
     <li>
       <button
@@ -55,7 +55,7 @@ function FoodRow({ food, onPick }: { food: Food; onPick: () => void }) {
             </>
           ) : (
             <>
-              {Math.round(food.kcal)}kcal・P{food.protein_g}
+              {Math.round(foodKcal(food))}kcal・P{food.protein_g}
               <br />
               /100g
             </>

@@ -40,7 +40,8 @@ describe("macros", () => {
   it("scales per-100g values and sums them", () => {
     expect(macrosFor(chicken, 150).protein_g).toBeCloseTo(34.95);
     const total = sumMacros([macrosFor(chicken, 100), macrosFor(rice, 200)]);
-    expect(total.kcal).toBeCloseTo(417);
+    // Counted from P/F/C at 4 / 9 / 4 (chicken 110.7 + rice 2 × 161.1).
+    expect(total.kcal).toBeCloseTo(432.9);
     expect(total.carb_g).toBeCloseTo(74.3);
   });
 });
@@ -193,5 +194,20 @@ describe("per-meal suggestions", () => {
     expect(perMealReason({ kcal: 1200, protein_g: 120, fat_g: 30, carb_g: 150 }, 3)).toMatch(
       /3 食で分けた/,
     );
+  });
+});
+
+describe("foodKcal", () => {
+  it("counts energy from P/F/C at 4 / 9 / 4, matching how targets are built", async () => {
+    const { foodKcal } = await import("@/lib/nutrition");
+    expect(foodKcal({ kcal: 156, protein_g: 2.5, fat_g: 0.3, carb_g: 37.1 })).toBeCloseTo(161.1);
+    expect(foodKcal({ kcal: 700, protein_g: 0.6, fat_g: 81, carb_g: 0.2 })).toBeCloseTo(732.2);
+  });
+
+  it("keeps the listed energy for alcohol, which P/F/C don't carry", async () => {
+    const { foodKcal, macrosFor } = await import("@/lib/nutrition");
+    const beer = { kcal: 39, protein_g: 0.3, fat_g: 0, carb_g: 3.1 };
+    expect(foodKcal(beer)).toBe(39);
+    expect(macrosFor(beer, 350).kcal).toBeCloseTo(136.5);
   });
 });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { kcalCheck, labelToFood, type FoodValues } from "@/lib/label";
+import { foodKcal } from "@/lib/nutrition";
 import { cn } from "@/lib/utils";
 
 const UNITS = ["袋", "個", "本", "枚", "パック", "食"];
@@ -226,7 +227,8 @@ export function NewFoodForm({
 
       {food && (
         <p className="text-muted num text-xs">
-          100g 当たり {Math.round(food.kcal)}kcal・P{food.protein_g}・F{food.fat_g}・C{food.carb_g}
+          100g 当たり {Math.round(foodKcal(food))}kcal・P{food.protein_g}・F{food.fat_g}・C
+          {food.carb_g}
           {food.unit_name && `／1${food.unit_name} ${food.unit_grams}g`}
         </p>
       )}

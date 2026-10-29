@@ -13,6 +13,7 @@ import {
   variantsOf,
   type PlanMeal,
 } from "@/lib/meal-plan";
+import { macrosFor } from "@/lib/nutrition";
 import type { LogItem, Template } from "@/lib/queries/nutrition";
 import { cn } from "@/lib/utils";
 
@@ -178,7 +179,7 @@ export function MealCard(props: Props) {
                       {[
                         foodGroupLabel(i.food.food_group),
                         hasUnit(i.food) && `${Math.round(i.grams)}g`,
-                        `${Math.round((i.food.kcal * i.grams) / 100)}kcal`,
+                        `${Math.round(macrosFor(i.food, i.grams).kcal)}kcal`,
                       ]
                         .filter(Boolean)
                         .join(" ・ ")}
