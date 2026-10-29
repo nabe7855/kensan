@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { PlanMeal } from "@/lib/meal-plan";
-import type { DayType, Food, Target } from "@/lib/nutrition";
+import { macrosFor, type DayType, type Food, type Target } from "@/lib/nutrition";
 import { getSupabase } from "@/lib/supabase/client";
 
 const FOOD_COLUMNS =
@@ -198,12 +198,15 @@ export function useDailyIntake(from: string, to: string) {
         {
           date: string;
           eaten_at: string | null;
-          meal_log_items: { grams: number; foods: { kcal: number } | null }[];
+          meal_log_items: {
+            grams: number;
+            foods: { kcal: number; protein_g: number; fat_g: number; carb_g: number } | null;
+          }[];
         }[]
       >(
         getSupabase()
           .from("meal_logs")
-          .select("date, eaten_at, meal_log_items(grams, foods(kcal))")
+          .select("date, eaten_at, meal_log_items(grams, foods(kcal, protein_g, fat_g, carb_g))")
           .gte("date", from)
           .lte("date", to)
           .not("eaten_at", "is", null),
@@ -211,7 +214,7 @@ export function useDailyIntake(from: string, to: string) {
       const byDay: Record<string, number> = {};
       for (const r of rows) {
         const kcal = r.meal_log_items.reduce(
-          (s, i) => s + ((i.foods?.kcal ?? 0) * i.grams) / 100,
+          (s, i) => s + (i.foods ? macrosFor(i.foods, i.grams).kcal : 0),
           0,
         );
         byDay[r.date] = (byDay[r.date] ?? 0) + kcal;

@@ -1,5 +1,5 @@
 import { fillError } from "./fill";
-import { macrosFor, sumMacros, type Macros } from "./nutrition";
+import { foodKcal, macrosFor, sumMacros, type Macros } from "./nutrition";
 
 export type MenuFood = Macros & {
   id: string;
@@ -19,8 +19,9 @@ const SIDE_GROUPS = new Set([6, 7, 8, 9]);
 
 /** What a food plays in a meal, by food group and, for dishes and others, by its macros. */
 export function roleOf(f: MenuFood): Role | null {
-  const pShare = f.kcal > 0 ? (f.protein_g * 4) / f.kcal : 0;
-  const cShare = f.kcal > 0 ? (f.carb_g * 4) / f.kcal : 0;
+  const kcal = foodKcal(f);
+  const pShare = kcal > 0 ? (f.protein_g * 4) / kcal : 0;
+  const cShare = kcal > 0 ? (f.carb_g * 4) / kcal : 0;
   if (f.food_group !== null && SIDE_GROUPS.has(f.food_group)) return "side";
   if (f.food_group !== null && STAPLE_GROUPS.has(f.food_group) && cShare >= 0.5) return "staple";
   if (pShare >= 0.35 && f.protein_g >= 8) return "main";

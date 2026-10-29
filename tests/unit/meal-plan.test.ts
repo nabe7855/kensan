@@ -38,7 +38,8 @@ const meal = (slot: string, eaten: boolean, items: [Food, number][]): PlanMeal =
 describe("dayTotals", () => {
   it("splits eaten and planned", () => {
     const t = dayTotals([meal("朝", true, [[rice, 100]]), meal("昼", false, [[chicken, 100]])]);
-    expect(t.eaten.kcal).toBeCloseTo(156);
+    // 4 / 9 / 4 from P/F/C: 2.5×4 + 0.3×9 + 37.1×4
+    expect(t.eaten.kcal).toBeCloseTo(161.1);
     expect(t.planned.protein_g).toBeCloseTo(23.3);
   });
 

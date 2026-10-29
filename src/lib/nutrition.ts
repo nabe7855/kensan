@@ -15,11 +15,23 @@ export const ZERO: Macros = { kcal: 0, protein_g: 0, fat_g: 0, carb_g: 0 };
 
 export const DEFAULT_SLOTS = ["朝", "昼", "トレ前", "夜"];
 
+/**
+ * kcal per 100 g counted from P/F/C at 4 / 9 / 4, the same way targets are built, so eaten
+ * totals and targets add up. Food-table energy uses food-specific factors (and counts fiber
+ * inside carbs differently), so it never quite matches. The one exception is energy the
+ * macros don't carry — alcohol (7 kcal/g): when the listed value is far above the P/F/C sum,
+ * the listed value is kept.
+ */
+export function foodKcal(food: Macros): number {
+  const pfc = food.protein_g * 4 + food.fat_g * 9 + food.carb_g * 4;
+  return food.kcal - pfc > Math.max(10, pfc * 0.3) ? food.kcal : pfc;
+}
+
 /** Macros for `grams` of a food whose values are per 100 g. */
 export function macrosFor(food: Macros, grams: number): Macros {
   const f = grams / 100;
   return {
-    kcal: food.kcal * f,
+    kcal: foodKcal(food) * f,
     protein_g: food.protein_g * f,
     fat_g: food.fat_g * f,
     carb_g: food.carb_g * f,
