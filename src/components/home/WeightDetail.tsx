@@ -6,7 +6,9 @@ import { useMemo, useState } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { weightChartPoints } from "@/lib/home";
 import { todayISO } from "@/lib/prep";
+import type { Macros } from "@/lib/nutrition";
 import { useCheckins } from "@/lib/queries/checkins";
+import { useDailyMacros } from "@/lib/queries/nutrition";
 import { weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
 import {
@@ -27,6 +29,11 @@ const daysBetween = (a: string, b: string) =>
   Math.round(
     (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86_400_000,
   ) + 1;
+
+const macroLine = (m: Macros | undefined) =>
+  m && m.kcal > 0
+    ? `${Math.round(m.kcal).toLocaleString()}kcal・P${Math.round(m.protein_g)} F${Math.round(m.fat_g)} C${Math.round(m.carb_g)}`
+    : "食事の記録なし";
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -63,6 +70,7 @@ export function WeightDetail() {
     [entries, today, prep, from],
   );
   const stats = rangeStats(entries, from, today);
+  const { data: macros } = useDailyMacros(from, today);
   const headline = headlineWeight(entries, today);
 
   if (isError) {
@@ -195,11 +203,21 @@ export function WeightDetail() {
                   type="button"
                   onClick={() => setSelected(e.date)}
                   className={cn(
-                    "flex min-h-12 w-full items-center justify-between px-4 text-left",
+                    "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left",
                     selected === e.date && "bg-bg",
                   )}
                 >
-                  <span className="text-sm">{full(e.date)}</span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-sm">{full(e.date)}</span>
+                    <span
+                      className={cn(
+                        "num text-xs",
+                        macros?.[e.date]?.kcal ? "text-muted" : "text-ghost",
+                      )}
+                    >
+                      {macros ? macroLine(macros[e.date]) : " "}
+                    </span>
+                  </span>
                   <span className="num text-lg">{e.weightKg.toFixed(1)}</span>
                 </button>
               </li>
