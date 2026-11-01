@@ -2,7 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { PlanMeal } from "@/lib/meal-plan";
-import { macrosFor, type DayType, type Food, type Target } from "@/lib/nutrition";
+import {
+  macrosFor,
+  sumMacros,
+  ZERO,
+  type DayType,
+  type Food,
+  type Macros,
+  type Target,
+} from "@/lib/nutrition";
 import { getSupabase } from "@/lib/supabase/client";
 
 const FOOD_COLUMNS =
@@ -188,39 +196,49 @@ export function useFoodSearch(q: string, filter: FoodFilter = { kind: "all" }) {
   });
 }
 
+/** Eaten macros per day in [from, to] (dates); planned-only meals are left out. */
+async function fetchDailyMacros(from: string, to: string): Promise<Record<string, Macros>> {
+  const rows = await unwrap<
+    {
+      date: string;
+      meal_log_items: {
+        grams: number;
+        foods: { kcal: number; protein_g: number; fat_g: number; carb_g: number } | null;
+      }[];
+    }[]
+  >(
+    getSupabase()
+      .from("meal_logs")
+      .select("date, meal_log_items(grams, foods(kcal, protein_g, fat_g, carb_g))")
+      .gte("date", from)
+      .lte("date", to)
+      .not("eaten_at", "is", null),
+  );
+  // A plain object, not a Map: the query cache is persisted as JSON.
+  const byDay: Record<string, Macros> = {};
+  for (const r of rows) {
+    const items = r.meal_log_items.flatMap((i) => (i.foods ? [macrosFor(i.foods, i.grams)] : []));
+    byDay[r.date] = sumMacros([byDay[r.date] ?? ZERO, ...items]);
+  }
+  return byDay;
+}
+
+/** Eaten macros per day, e.g. next to each weight record. */
+export function useDailyMacros(from: string, to: string) {
+  return useQuery({
+    queryKey: ["daily-macros", from, to],
+    queryFn: () => fetchDailyMacros(from, to),
+  });
+}
+
 /** Eaten kcal per day in [from, to] (dates), for estimating maintenance. */
 export function useDailyIntake(from: string, to: string) {
   return useQuery({
     queryKey: ["daily-intake", from, to],
-    // A plain object, not a Map: the query cache is persisted as JSON.
-    queryFn: async (): Promise<Record<string, number>> => {
-      const rows = await unwrap<
-        {
-          date: string;
-          eaten_at: string | null;
-          meal_log_items: {
-            grams: number;
-            foods: { kcal: number; protein_g: number; fat_g: number; carb_g: number } | null;
-          }[];
-        }[]
-      >(
-        getSupabase()
-          .from("meal_logs")
-          .select("date, eaten_at, meal_log_items(grams, foods(kcal, protein_g, fat_g, carb_g))")
-          .gte("date", from)
-          .lte("date", to)
-          .not("eaten_at", "is", null),
-      );
-      const byDay: Record<string, number> = {};
-      for (const r of rows) {
-        const kcal = r.meal_log_items.reduce(
-          (s, i) => s + (i.foods ? macrosFor(i.foods, i.grams).kcal : 0),
-          0,
-        );
-        byDay[r.date] = (byDay[r.date] ?? 0) + kcal;
-      }
-      return byDay;
-    },
+    queryFn: async (): Promise<Record<string, number>> =>
+      Object.fromEntries(
+        Object.entries(await fetchDailyMacros(from, to)).map(([d, m]) => [d, m.kcal]),
+      ),
   });
 }
 
