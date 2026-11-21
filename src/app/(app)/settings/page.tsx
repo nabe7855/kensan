@@ -21,6 +21,11 @@ export default async function SettingsPage() {
     .select("id, contest_name, contest_date, start_weight_kg, target_weight_kg, weekly_rate_pct")
     .eq("is_active", true)
     .maybeSingle();
+  const { data: admin } = await supabase
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,6 +110,15 @@ export default async function SettingsPage() {
         </Button>
         <LogoutButton />
       </section>
+
+      {admin && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-muted text-xs">管理</h2>
+          <Button asChild variant="secondary">
+            <Link href="/admin">AI の利用状況</Link>
+          </Button>
+        </section>
+      )}
     </div>
   );
 }
