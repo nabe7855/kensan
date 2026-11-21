@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costUsd, monthStartISO, toYen } from "@/lib/ai/cost";
+import { costUsd, formatYen, monthRange, monthStartISO, toYen } from "@/lib/ai/cost";
 import { readingToForm, type LabelReading } from "@/lib/ai/label-reading";
 
 const reading = (over: Partial<LabelReading> = {}): LabelReading => ({
@@ -61,5 +61,29 @@ describe("AI cost", () => {
 
   it("starts the month at UTC midnight on the 1st", () => {
     expect(monthStartISO(new Date("2026-11-18T03:00:00Z"))).toBe("2026-11-01T00:00:00.000Z");
+  });
+});
+
+describe("monthRange", () => {
+  it("parses a month and wraps across years", () => {
+    const r = monthRange("2026-12", new Date("2026-11-21T00:00:00Z"));
+    expect(r).toEqual({
+      key: "2026-12",
+      prev: "2026-11",
+      next: "2027-01",
+      since: "2026-12-01T00:00:00.000Z",
+      until: "2027-01-01T00:00:00.000Z",
+    });
+  });
+
+  it("falls back to this month", () => {
+    expect(monthRange("bad", new Date("2026-11-21T00:00:00Z")).key).toBe("2026-11");
+  });
+});
+
+describe("formatYen", () => {
+  it("keeps a decimal under 10 yen", () => {
+    expect(formatYen(0.00035)).toBe("0.1");
+    expect(formatYen(1)).toBe("150");
   });
 });

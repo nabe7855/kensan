@@ -22,3 +22,26 @@ export function monthStartISO(now: Date): string {
 
 /** Yen for display only; a rough fixed rate is fine for a spending gauge. */
 export const toYen = (usd: number) => Math.round(usd * 150);
+
+/** "2026-11" → the UTC month's [start, end) as ISO timestamps; anything else → this month. */
+export function monthRange(month: string | undefined, now: Date) {
+  const m = /^(\d{4})-(\d{2})$/.exec(month ?? "");
+  const y = m ? Number(m[1]) : now.getUTCFullYear();
+  const mo = m ? Number(m[2]) - 1 : now.getUTCMonth();
+  const start = new Date(Date.UTC(y, mo, 1));
+  const end = new Date(Date.UTC(y, mo + 1, 1));
+  const key = (d: Date) => d.toISOString().slice(0, 7);
+  return {
+    key: key(start),
+    prev: key(new Date(Date.UTC(y, mo - 1, 1))),
+    next: key(end),
+    since: start.toISOString(),
+    until: end.toISOString(),
+  };
+}
+
+/** Yen with a decimal for small amounts, since one label read is a fraction of a yen. */
+export const formatYen = (usd: number) => {
+  const yen = usd * 150;
+  return yen < 10 ? yen.toFixed(1) : Math.round(yen).toLocaleString("ja-JP");
+};

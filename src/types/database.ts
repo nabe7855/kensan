@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           cost_usd: number
@@ -1058,7 +1070,18 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      admin_ai_usage: {
+        Args: { since: string; until: string }
+        Returns: {
+          calls: number
+          cost_usd: number
+          display_name: string
+          email: string
+          input_tokens: number
+          output_tokens: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
