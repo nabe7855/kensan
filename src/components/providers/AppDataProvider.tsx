@@ -30,6 +30,8 @@ export type AppData = {
   trainingPhase: TrainingPhase;
   plateauAlerts: boolean;
   mutedExercises: string[];
+  /** Opted in to features that send records or photos to the AI. */
+  aiEnabled: boolean;
   prep: ActivePrep | null;
 };
 
@@ -51,7 +53,7 @@ async function fetchAppData(): Promise<Loaded> {
     supabase
       .from("profiles")
       .select(
-        "display_name, onboarded_at, track_libido, meal_slots, show_rir, training_phase, plateau_alerts, muted_exercises",
+        "display_name, onboarded_at, track_libido, meal_slots, show_rir, training_phase, plateau_alerts, muted_exercises, ai_enabled",
       )
       .eq("user_id", userId)
       .maybeSingle(),
@@ -76,6 +78,7 @@ async function fetchAppData(): Promise<Loaded> {
     trainingPhase: p.training_phase as TrainingPhase,
     plateauAlerts: p.plateau_alerts,
     mutedExercises: p.muted_exercises,
+    aiEnabled: p.ai_enabled,
     prep: prep.data ? { ...prep.data, phase_split: decodeSplit(prep.data.phase_split) } : null,
   };
 }

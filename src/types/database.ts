@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          feature: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          user_id: string
+        }
+        Insert: {
+          cost_usd: number
+          created_at?: string
+          feature: string
+          id?: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          user_id?: string
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          feature?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       contest_checks: {
         Row: {
           contest_id: string
@@ -689,6 +722,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_enabled: boolean
           created_at: string
           display_name: string | null
           height_cm: number | null
@@ -705,6 +739,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_enabled?: boolean
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
@@ -721,6 +756,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          ai_enabled?: boolean
           created_at?: string
           display_name?: string | null
           height_cm?: number | null

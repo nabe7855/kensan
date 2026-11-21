@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { LabelFormValues } from "@/lib/ai/label-reading";
 import { kcalCheck, labelToFood, type FoodValues } from "@/lib/label";
 import { foodKcal } from "@/lib/nutrition";
 import { cn } from "@/lib/utils";
+import { LabelScan } from "./LabelScan";
 
 const UNITS = ["袋", "個", "本", "枚", "パック", "食"];
 const KINDS: { id: number | null; label: string }[] = [
@@ -69,6 +71,24 @@ export function NewFoodForm({
     salt_g: "",
   });
 
+  const [readByAi, setReadByAi] = useState(false);
+
+  function applyReading(r: LabelFormValues) {
+    if (r.name && !name.trim()) setName(r.name);
+    setBasis(r.basis);
+    if (r.servingName) setServingName(r.servingName);
+    setServingGrams(r.servingGrams);
+    setValues({
+      kcal: r.kcal,
+      protein_g: r.protein_g,
+      fat_g: r.fat_g,
+      carb_g: r.carb_g,
+      fiber_g: r.fiber_g,
+      salt_g: r.salt_g,
+    });
+    setReadByAi(true);
+  }
+
   const v = (k: NutrientKey) => num(values[k]);
   const ready =
     name.trim() !== "" &&
@@ -104,6 +124,8 @@ export function NewFoodForm({
         if (food) onSave({ ...food, name: name.trim(), food_group: kind });
       }}
     >
+      <LabelScan onRead={applyReading} />
+
       <label className="flex flex-col gap-1">
         <span className="text-sm font-bold">食品名</span>
         <input
@@ -195,6 +217,11 @@ export function NewFoodForm({
             </span>
           </label>
         ))}
+        {readByAi && (
+          <p className="text-muted text-xs leading-relaxed">
+            写真から読み取りました。登録する前に、パッケージの表示と同じか確認してください
+          </p>
+        )}
         {check?.off && (
           <p className="text-warn text-xs leading-relaxed">
             P・F・C から計算すると約 {check.estimated}kcal
