@@ -16,7 +16,7 @@ const PHASES: { key: TrainingPhase; label: string; note: string }[] = [
   { key: "cut", label: "減量", note: "維持できていれば十分。はっきり落ちたときだけ知らせる" },
 ];
 
-function Toggle({
+export function Toggle({
   label,
   note,
   checked,

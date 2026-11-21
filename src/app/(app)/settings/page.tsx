@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AiSettings } from "@/components/settings/AiSettings";
 import { EmailForm } from "@/components/settings/EmailForm";
 import { ExportButtons } from "@/components/settings/ExportButtons";
 import { LogoutButton } from "@/components/settings/LogoutButton";
@@ -39,6 +40,11 @@ export default async function SettingsPage() {
       <section className="flex flex-col gap-2">
         <h2 className="text-muted text-xs">トレーニング</h2>
         <TrainingSettings />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-muted text-xs">AI</h2>
+        <AiSettings />
       </section>
 
       <section className="flex flex-col gap-2">
