@@ -11,6 +11,7 @@ import { useCheckins } from "@/lib/queries/checkins";
 import { trendDirection, weightTrend } from "@/lib/trend";
 import { cn } from "@/lib/utils";
 import { headlineWeight } from "@/lib/weight-stats";
+import { CheckinCard } from "./CheckinCard";
 import { ContestCard } from "./ContestCard";
 import { SafetyCard } from "./SafetyCard";
 import { NutritionSummary } from "./NutritionSummary";
@@ -97,6 +98,7 @@ export function HomeScreen() {
       <SafetyCard />
       <ContestCard />
       <PhaseCard />
+      <CheckinCard />
       <NutritionSummary today={today} />
 
       <TodayTrainingCard />

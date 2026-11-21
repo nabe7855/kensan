@@ -26,6 +26,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_checkins: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          facts: Json
+          id: string
+          kcal_delta: number
+          model: string
+          result: Json
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          facts: Json
+          id?: string
+          kcal_delta?: number
+          model: string
+          result: Json
+          user_id?: string
+          week_start: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          facts?: Json
+          id?: string
+          kcal_delta?: number
+          model?: string
+          result?: Json
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           cost_usd: number
@@ -1080,6 +1116,17 @@ export type Database = {
           input_tokens: number
           output_tokens: number
           user_id: string
+        }[]
+      }
+      admin_ai_usage_by_feature: {
+        Args: { since: string; until: string }
+        Returns: {
+          calls: number
+          cost_usd: number
+          feature: string
+          input_tokens: number
+          model: string
+          output_tokens: number
         }[]
       }
     }

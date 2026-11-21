@@ -1,11 +1,32 @@
 /** USD per 1M tokens, for prompts up to 100K tokens (the only size this app sends). */
 const PRICES = {
   "claude-haiku-5-5": { input: 0.1, output: 0.5 },
+  "claude-sonnet-5-5": { input: 2, output: 10 },
 } as const;
 
 export type AiModel = keyof typeof PRICES;
 
-export const LABEL_MODEL: AiModel = "claude-haiku-5-5";
+export type AiFeature = "label" | "checkin" | "chat" | "peak";
+
+/**
+ * Which model each feature uses. Haiku first everywhere; move a feature up to Sonnet only
+ * when its answers are clearly not good enough (Sonnet costs 20x).
+ */
+export const MODELS: Record<AiFeature, AiModel> = {
+  label: "claude-haiku-5-5",
+  checkin: "claude-haiku-5-5",
+  chat: "claude-haiku-5-5",
+  peak: "claude-haiku-5-5",
+};
+
+export const FEATURE_LABELS: Record<AiFeature, string> = {
+  label: "栄養成分表示の読み取り",
+  checkin: "週の振り返り",
+  chat: "AI コーチ",
+  peak: "大会前の確認",
+};
+
+export const LABEL_MODEL = MODELS.label;
 
 /** Spend per user per calendar month (UTC) before AI requests are refused. */
 export const MONTHLY_LIMIT_USD = 1;
