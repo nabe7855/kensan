@@ -20,6 +20,7 @@ const TABLES: Record<string, string> = {
   contest_checks: "大会のチェック",
   pose_photos: "ポーズ写真",
   ai_checkins: "週の振り返り",
+  ai_messages: "AI コーチの会話",
 };
 
 const KINDS: Record<OutboxOp["kind"], string> = {

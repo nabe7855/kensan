@@ -30,3 +30,28 @@ export function useAiCheckins() {
     },
   });
 }
+
+export type AiMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
+
+export const messagesKey = ["ai-messages"] as const;
+
+/** The latest coach conversation, oldest first. */
+export function useAiMessages() {
+  return useQuery({
+    queryKey: messagesKey,
+    queryFn: async (): Promise<AiMessage[]> => {
+      const { data, error } = await getSupabase()
+        .from("ai_messages")
+        .select("id, role, content, created_at")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (error) throw error;
+      return (data as AiMessage[]).reverse();
+    },
+  });
+}
