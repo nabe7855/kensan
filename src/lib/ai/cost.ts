@@ -28,6 +28,9 @@ export const FEATURE_LABELS: Record<AiFeature, string> = {
 
 export const LABEL_MODEL = MODELS.label;
 
+/** Coach messages per user per day (JST), on top of the monthly cap. */
+export const DAILY_CHAT_LIMIT = 30;
+
 /** Spend per user per calendar month (UTC) before AI requests are refused. */
 export const MONTHLY_LIMIT_USD = 1;
 

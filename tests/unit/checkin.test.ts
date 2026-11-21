@@ -8,6 +8,7 @@ import {
   type CheckinFacts,
   type CheckinInput,
 } from "@/lib/ai/checkin";
+import { toTurns } from "@/lib/ai/coach";
 import { addDaysISO } from "@/lib/prep";
 
 const WEEK = "2026-11-09"; // Monday
@@ -149,4 +150,21 @@ describe("adjustedTargets", () => {
 
 it("reviews the week before this one", () => {
   expect(lastWeekStart("2026-11-16")).toBe("2026-11-09");
+});
+
+describe("toTurns", () => {
+  it("starts with the user, alternates and ends with an answer", () => {
+    expect(
+      toTurns([
+        { role: "assistant", content: "orphan" },
+        { role: "user", content: "a" },
+        { role: "user", content: "b" },
+        { role: "assistant", content: "c" },
+        { role: "user", content: "d" },
+      ]),
+    ).toEqual([
+      { role: "user", content: "a\n\nb" },
+      { role: "assistant", content: "c" },
+    ]);
+  });
 });
