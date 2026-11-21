@@ -7,6 +7,7 @@ import { useMealActions } from "@/components/nutrition/useMealActions";
 import { useAppData, useRefreshAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
+import { carbCycle, trainingDaysPerWeek } from "@/lib/carb-cycle";
 import {
   datesValid,
   encodeSplit,
@@ -19,8 +20,10 @@ import {
   type PhaseSplit,
 } from "@/lib/cut-phases";
 import type { Target } from "@/lib/nutrition";
-import { daysUntilContest } from "@/lib/prep";
+import { addDaysISO, daysUntilContest } from "@/lib/prep";
 import { nutritionKeys, useTargets } from "@/lib/queries/nutrition";
+import { jstMidnight, useSessions } from "@/lib/queries/training";
+import { jstDate } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
 import { PhaseCalendar, type Boundary } from "./PhaseCalendar";
 import { usePhasePlan } from "./usePhasePlan";
@@ -194,6 +197,18 @@ export function PhasePlan() {
   const actions = useMealActions(today);
   const [confirming, setConfirming] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [cycle, setCycle] = useState(false);
+  const [trainDaysPick, setTrainDays] = useState<number | null>(null);
+  const sessions = useSessions(
+    jstMidnight(addDaysISO(today, -27)),
+    jstMidnight(addDaysISO(today, 1)),
+  );
+  const trainDays =
+    trainDaysPick ??
+    trainingDaysPerWeek(
+      (sessions.data ?? []).map((s) => jstDate(s.started_at)),
+      today,
+    );
 
   if (!prep) {
     return (
@@ -253,6 +268,13 @@ export function PhasePlan() {
     void refreshAppData();
   }
 
+  // The final week is handled on its own, so it keeps one value for both day types.
+  function cycleFor(p: Phase) {
+    return p.key === "peak" ? null : carbCycle(p, trainDays);
+  }
+  const preview = current ?? upcoming[0] ?? null;
+  const previewSplit = preview ? cycleFor(preview) : null;
+
   async function apply() {
     // Targets scheduled after today belong to the old phase dates; replace them.
     const newDates = new Set(upcoming.map((p) => (p.start > today ? p.start : today)));
@@ -278,10 +300,11 @@ export function PhasePlan() {
     for (const p of upcoming) {
       const from = p.start > today ? p.start : today;
       const row = { kcal: p.kcal, protein_g: p.protein_g, fat_g: p.fat_g, carb_g: p.carb_g };
+      const split = cycle ? cycleFor(p) : null;
       await actions.saveTargets(
         [
-          { day_type: "train", ...row },
-          { day_type: "off", ...row },
+          { day_type: "train", ...(split?.train ?? row) },
+          { day_type: "off", ...(split?.off ?? row) },
         ],
         from,
       );
@@ -439,12 +462,102 @@ export function PhasePlan() {
         <PhaseCard key={p.key} p={p} current={current?.key === p.key} today={today} />
       ))}
 
+      {upcoming.length > 0 && (
+        <section className="surface flex flex-col gap-3 px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold">カーボサイクル</h2>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={cycle}
+              aria-label="カーボサイクルを使う"
+              onClick={() => {
+                setCycle((v) => !v);
+                setApplied(false);
+              }}
+              className={cn(
+                "flex h-12 w-20 items-center rounded-full border px-1 transition-colors",
+                cycle ? "border-accent bg-accent/20 justify-end" : "border-border justify-start",
+              )}
+            >
+              <span className={cn("size-9 rounded-full", cycle ? "bg-accent" : "bg-ghost")} />
+            </button>
+          </div>
+          <p className="text-muted text-xs leading-relaxed">
+            トレ日に炭水化物を多めに、オフ日は少なめにします。週の合計カロリーは同じです。トレーニングの日に糖質を寄せると、練習の質を保ちやすくなります。
+          </p>
+          {cycle && (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm">週のトレーニング日数</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="トレーニング日数を減らす"
+                    disabled={trainDays <= 1}
+                    onClick={() => setTrainDays(Math.max(1, trainDays - 1))}
+                    className="border-border size-12 rounded-md border text-lg disabled:opacity-40"
+                  >
+                    −
+                  </button>
+                  <span className="num w-12 text-center text-2xl">{trainDays}</span>
+                  <button
+                    type="button"
+                    aria-label="トレーニング日数を増やす"
+                    disabled={trainDays >= 6}
+                    onClick={() => setTrainDays(Math.min(6, trainDays + 1))}
+                    className="border-border size-12 rounded-md border text-lg disabled:opacity-40"
+                  >
+                    ＋
+                  </button>
+                </div>
+              </div>
+              {trainDaysPick === null && (
+                <p className="text-ghost -mt-2 text-xs">直近 4 週の記録から</p>
+              )}
+              {preview &&
+                (previewSplit ? (
+                  <div className="flex flex-col gap-1">
+                    <p className="text-muted text-xs">{preview.name}の場合</p>
+                    {(
+                      [
+                        ["トレ日", previewSplit.train],
+                        ["オフ日", previewSplit.off],
+                      ] as const
+                    ).map(([label, m]) => (
+                      <p key={label} className="num flex justify-between text-sm">
+                        <span>{label}</span>
+                        <span>
+                          {kcalFmt(m.kcal)}kcal・C{m.carb_g}g
+                        </span>
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted text-xs leading-relaxed">
+                    {preview.key === "peak"
+                      ? "最終調整はトレ日とオフ日を同じ値にします"
+                      : "炭水化物が少ないため、このフェーズは同じ値にします"}
+                  </p>
+                ))}
+              <p className="text-ghost text-xs leading-relaxed">
+                最終調整のフェーズと、オフ日の炭水化物が 50g
+                を下回るフェーズは同じ値のままにします。
+              </p>
+            </>
+          )}
+        </section>
+      )}
+
       {upcoming.length > 0 &&
         (confirming ? (
           <section className="surface flex flex-col gap-3 px-4 py-3">
             <p className="text-sm leading-relaxed">
               今日から各フェーズの開始日に、目標カロリーと PFC
-              が自動で切り替わるように登録します。明日以降の日付で登録済みの目標は、この内容に置き換わります。トレ日とオフ日は同じ値になるので、必要なら食事画面の「目標を変更」で調整してください。
+              が自動で切り替わるように登録します。明日以降の日付で登録済みの目標は、この内容に置き換わります。
+              {cycle
+                ? `カーボサイクル（週 ${trainDays} 日トレ）で、トレ日とオフ日の炭水化物を分けて登録します。`
+                : "トレ日とオフ日は同じ値になるので、必要なら食事画面の「目標を変更」で調整してください。"}
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="ghost" onClick={() => setConfirming(false)}>
