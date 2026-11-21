@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatYen, MONTHLY_LIMIT_USD, monthRange } from "@/lib/ai/cost";
+import {
+  FEATURE_LABELS,
+  formatYen,
+  MONTHLY_LIMIT_USD,
+  monthRange,
+  type AiFeature,
+} from "@/lib/ai/cost";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "管理 | 研鑽" };
@@ -24,10 +30,10 @@ export default async function AdminPage({
   if (!admin) notFound();
 
   const range = monthRange((await searchParams).m, new Date());
-  const { data: rows, error } = await supabase.rpc("admin_ai_usage", {
-    since: range.since,
-    until: range.until,
-  });
+  const [{ data: rows, error }, { data: byFeature }] = await Promise.all([
+    supabase.rpc("admin_ai_usage", { since: range.since, until: range.until }),
+    supabase.rpc("admin_ai_usage_by_feature", { since: range.since, until: range.until }),
+  ]);
   const usage = rows ?? [];
   const total = usage.reduce((s, r) => s + Number(r.cost_usd), 0);
   const calls = usage.reduce((s, r) => s + Number(r.calls), 0);
@@ -64,6 +70,33 @@ export default async function AdminPage({
           <p className="text-ghost text-xs">{usage.length} アカウント</p>
         </div>
       </div>
+
+      {byFeature && byFeature.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-muted text-xs">機能別（1 回あたりの平均で、モデルを見直す目安に）</h2>
+          {byFeature.map((r) => {
+            const cost = Number(r.cost_usd);
+            const n = Number(r.calls);
+            return (
+              <div
+                key={`${r.feature}:${r.model}`}
+                className="surface flex items-center gap-3 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">
+                    {FEATURE_LABELS[r.feature as AiFeature] ?? r.feature}
+                  </p>
+                  <p className="text-ghost truncate text-xs">{r.model}</p>
+                  <p className="num text-muted text-xs">
+                    {n.toLocaleString("ja-JP")} 回・1 回 約 {formatYen(n ? cost / n : 0)} 円
+                  </p>
+                </div>
+                <p className="num text-lg">約 {formatYen(cost)} 円</p>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-muted text-xs">
