@@ -9,6 +9,7 @@ import {
   type CheckinInput,
 } from "@/lib/ai/checkin";
 import { toTurns } from "@/lib/ai/coach";
+import { buildPeakFacts, inPeakWindow, PeakFactsSchema, tidyPeakResult } from "@/lib/ai/peak";
 import { addDaysISO } from "@/lib/prep";
 
 const WEEK = "2026-11-09"; // Monday
@@ -166,5 +167,43 @@ describe("toTurns", () => {
       { role: "user", content: "a\n\nb" },
       { role: "assistant", content: "c" },
     ]);
+  });
+});
+
+describe("final-week plan", () => {
+  it("keeps only today through the contest day, in order", () => {
+    const tidy = tidyPeakResult(
+      {
+        summary: "s",
+        days: [
+          { days_before: 0, focus: "当日", items: ["a", "b", "c", "d"] },
+          { days_before: 5, focus: "too far", items: [] },
+          { days_before: 2, focus: "移動", items: ["x"] },
+          { days_before: 2, focus: "dup", items: [] },
+          { days_before: -1, focus: "after", items: [] },
+        ],
+        cautions: ["1", "2", "3", "4"],
+      },
+      3,
+    );
+    expect(tidy.days.map((d) => d.days_before)).toEqual([2, 0]);
+    expect(tidy.days[0]!.focus).toBe("移動");
+    expect(tidy.days[1]!.items).toHaveLength(3);
+    expect(tidy.cautions).toHaveLength(3);
+  });
+
+  it("sends only known checklist keys", () => {
+    const f = buildPeakFacts({
+      daysToContest: 5,
+      targetWeightKg: 70,
+      week: facts(),
+      openKeys: ["packing", "nope", "sleep"],
+      ownOpen: 80,
+    });
+    expect(PeakFactsSchema.parse(f)).toEqual(f);
+    expect(f.open_items).toEqual(["packing", "sleep"]);
+    expect(f.own_open).toBe(50);
+    expect(inPeakWindow(14)).toBe(true);
+    expect(inPeakWindow(15)).toBe(false);
   });
 });
