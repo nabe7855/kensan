@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { checklist, countdownLabel, type ChecklistItem } from "@/lib/contest";
+import { inPeakWindow } from "@/lib/ai/peak";
+import { checklist, countdownLabel, sysKey, type ChecklistItem } from "@/lib/contest";
 import { addDaysISO, daysUntilContest, todayISO } from "@/lib/prep";
 import { useContestChecks, useContestRoutines, useContests } from "@/lib/queries/contests";
 import { cn } from "@/lib/utils";
+import { PeakAssistant } from "./PeakAssistant";
 import { useContestActions } from "./useContestActions";
 
 const when = (days: number) => (days === 0 ? "当日" : `${days}日前から`);
@@ -249,6 +251,18 @@ export function ContestDetail({ id }: { id: string }) {
             </ul>
           )}
         </section>
+      )}
+
+      {inPeakWindow(left) && (
+        <PeakAssistant
+          contestId={contest.id}
+          contestDate={contest.date}
+          daysLeft={left}
+          openKeys={[...list.now, ...list.upcoming]
+            .filter((i) => !i.own)
+            .map((i) => i.key.slice(sysKey("").length))}
+          ownOpen={list.now.filter((i) => i.own).length}
+        />
       )}
 
       <Button asChild variant="secondary">

@@ -86,6 +86,47 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_peak_plans: {
+        Row: {
+          contest_id: string
+          created_at: string
+          facts: Json
+          id: string
+          model: string
+          on_date: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          contest_id: string
+          created_at?: string
+          facts: Json
+          id?: string
+          model: string
+          on_date: string
+          result: Json
+          user_id?: string
+        }
+        Update: {
+          contest_id?: string
+          created_at?: string
+          facts?: Json
+          id?: string
+          model?: string
+          on_date?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_peak_plans_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "contests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage: {
         Row: {
           cost_usd: number
