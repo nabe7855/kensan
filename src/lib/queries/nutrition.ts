@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { LoggedMeal, MealFood } from "@/lib/ai/daily";
 import type { PlanMeal } from "@/lib/meal-plan";
 import {
   macrosFor,
@@ -256,6 +257,38 @@ export function useFridge() {
           .order("created_at", { ascending: false }),
       );
       return rows.map((r) => r.foods).filter((f): f is Food => !!f);
+    },
+  });
+}
+
+/** Eaten meals in [from, to] with time and sodium, for the coach's day-by-day view. */
+export function useLoggedMeals(from: string, to: string) {
+  return useQuery({
+    queryKey: ["logged-meals", from, to],
+    queryFn: async (): Promise<LoggedMeal[]> => {
+      const rows = await unwrap<
+        {
+          date: string;
+          eaten_at: string;
+          meal_log_items: { grams: number; foods: MealFood | null }[];
+        }[]
+      >(
+        getSupabase()
+          .from("meal_logs")
+          .select(
+            "date, eaten_at, meal_log_items(grams, foods(kcal, protein_g, fat_g, carb_g, sodium_mg))",
+          )
+          .gte("date", from)
+          .lte("date", to)
+          .not("eaten_at", "is", null),
+      );
+      return rows.map((r) => ({
+        date: r.date,
+        eaten_at: r.eaten_at,
+        items: r.meal_log_items.flatMap((i) =>
+          i.foods ? [{ grams: i.grams, food: i.foods }] : [],
+        ),
+      }));
     },
   });
 }

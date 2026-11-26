@@ -6,7 +6,9 @@ import { useState } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
+import { jstTime, SALT_LEVELS, type SaltLevel } from "@/lib/ai/daily";
 import { activeItems, type ConditionKey } from "@/lib/condition";
+import { todayISO } from "@/lib/prep";
 import { checkinKeys, type CheckinRow } from "@/lib/queries/checkins";
 import { PainPicker } from "./PainPicker";
 import { ScaleRow } from "./ScaleRow";
@@ -45,6 +47,16 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
     libido: existing?.libido ?? null,
   });
   const [bowel, setBowel] = useState<string | null>(existing?.bowel ?? null);
+  const [weighTime, setWeighTime] = useState(
+    existing?.weighed_at
+      ? jstTime(existing.weighed_at)
+      : date === todayISO()
+        ? jstTime(new Date().toISOString())
+        : "",
+  );
+  const [salt, setSalt] = useState<SaltLevel | null>(
+    (existing?.salt_level as SaltLevel | null) ?? null,
+  );
   const [note, setNote] = useState(existing?.note ?? "");
   const [pain, setPain] = useState<string[]>(existing?.pain_areas ?? []);
   const [showDetail, setShowDetail] = useState(existing?.rhr != null || existing?.temp_c != null);
@@ -74,6 +86,11 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
       rhr: rhrNum === null ? null : Math.round(rhrNum),
       temp_c: tempNum,
       pain_areas: pain,
+      weighed_at:
+        weightKg !== null && /^\d{2}:\d{2}$/.test(weighTime)
+          ? new Date(`${date}T${weighTime}:00+09:00`).toISOString()
+          : null,
+      salt_level: salt,
     };
     for (const [key, rows] of queryClient.getQueriesData<CheckinRow[]>({
       queryKey: checkinKeys.all,
@@ -112,6 +129,16 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
           <span className="num text-muted text-2xl">kg</span>
         </span>
       </label>
+      <label className="flex items-center justify-end gap-2 px-1">
+        <span className="text-muted text-xs">測った時刻</span>
+        <input
+          type="time"
+          value={weighTime}
+          onChange={(e) => setWeighTime(e.target.value)}
+          aria-label="体重を測った時刻"
+          className="num text-fg h-12 bg-transparent text-lg focus:outline-none"
+        />
+      </label>
 
       <p className="text-ghost flex justify-between px-1 text-xs">
         <span>1 ＝ 悪い</span>
@@ -128,6 +155,12 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
         />
       ))}
       <ScaleRow label="便通" options={BOWEL} value={bowel} onChange={setBowel} />
+      <ScaleRow
+        label="前日の塩分（感覚）"
+        options={[...SALT_LEVELS]}
+        value={salt}
+        onChange={setSalt}
+      />
       <PainPicker value={pain} onChange={setPain} />
 
       <input
