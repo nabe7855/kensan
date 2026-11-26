@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import {
-  estimateMaintenance,
+  maintenanceFromLogs,
   maintenanceFromWeight,
   planPhases,
   type Phase,
@@ -34,19 +34,10 @@ export function usePhasePlan(draftSplit?: PhaseSplit | PhaseDates | null, draftS
     void kvGet<number>(KEY).then((v) => setManual(v ?? null));
   }, []);
 
-  const estimated = useMemo(() => {
-    const weights = new Map(
-      (checkins.data ?? []).filter((c) => c.weight_kg != null).map((c) => [c.date, c.weight_kg!]),
-    );
-    const dates = [...new Set([...weights.keys(), ...Object.keys(intake.data ?? {})])].sort();
-    return estimateMaintenance(
-      dates.map((d) => ({
-        date: d,
-        kcal: intake.data?.[d] ?? null,
-        weightKg: weights.get(d) ?? null,
-      })),
-    );
-  }, [checkins.data, intake.data]);
+  const estimated = useMemo(
+    () => maintenanceFromLogs(checkins.data ?? [], intake.data ?? {}),
+    [checkins.data, intake.data],
+  );
 
   // Today's 7-day average weight: where a logged or typed-in maintenance figure applies.
   const currentKg = useMemo(() => {

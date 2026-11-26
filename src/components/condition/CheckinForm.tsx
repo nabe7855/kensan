@@ -7,7 +7,7 @@ import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import { jstTime, SALT_LEVELS, type SaltLevel } from "@/lib/ai/daily";
-import { activeItems, type ConditionKey } from "@/lib/condition";
+import { activeItems, weightLooksOff, type ConditionKey } from "@/lib/condition";
 import { todayISO } from "@/lib/prep";
 import { checkinKeys, type CheckinRow } from "@/lib/queries/checkins";
 import { PainPicker } from "./PainPicker";
@@ -63,6 +63,7 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
   const [rhr, setRhr] = useState(existing?.rhr?.toString() ?? "");
   const [temp, setTemp] = useState(existing?.temp_c?.toFixed(1) ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [checked, setChecked] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -73,6 +74,17 @@ export function CheckinForm({ date, existing, lastWeightKg }: Props) {
     if (weightKg === undefined) return setError("体重は 20〜300 kg で入力してください");
     if (rhrNum === undefined) return setError("心拍は 20〜200 で入力してください");
     if (tempNum === undefined) return setError("体温は 33〜42 ℃ で入力してください");
+    // A likely typo: ask once, then save on the second tap with the same value.
+    if (
+      weight !== checked &&
+      weightKg !== existing?.weight_kg &&
+      weightLooksOff(weightKg, lastWeightKg)
+    ) {
+      setChecked(weight);
+      return setError(
+        `前回の記録（${lastWeightKg!.toFixed(1)} kg）と差があります。入力に間違いがなければ、もう一度「記録」を押してください`,
+      );
+    }
 
     setSaving(true);
     setError(null);

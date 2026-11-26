@@ -11,6 +11,7 @@ type Props = {
   displayName: string;
   heightCm: number | null;
   sex: string | null;
+  birthYear: number | null;
   unitPref: string;
   trackLibido: boolean;
 };
@@ -47,6 +48,20 @@ export function ProfileForm(props: Props) {
             className="num w-20 bg-transparent text-right text-2xl focus:outline-none"
           />
           <span className="text-muted text-xs">cm</span>
+        </span>
+      </label>
+      <label className="surface flex h-14 items-center justify-between gap-4 px-4">
+        <span className="shrink-0 text-sm">生まれ年</span>
+        <span className="flex items-baseline gap-1">
+          <input
+            name="birth_year"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="任意"
+            defaultValue={props.birthYear ?? ""}
+            className="num placeholder:text-ghost w-20 bg-transparent text-right text-2xl focus:outline-none"
+          />
+          <span className="text-muted text-xs">年</span>
         </span>
       </label>
       <div className="surface flex flex-col gap-2 px-4 py-3">

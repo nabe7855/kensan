@@ -37,6 +37,7 @@ export default async function SettingsPage() {
           displayName={profile?.display_name ?? ""}
           heightCm={profile?.height_cm ?? null}
           sex={profile?.sex ?? null}
+          birthYear={profile?.birth_year ?? null}
           unitPref={profile?.unit_pref ?? "kg"}
           trackLibido={profile?.track_libido ?? true}
         />

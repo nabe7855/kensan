@@ -9,18 +9,22 @@ import { useAppData } from "@/components/providers/AppDataProvider";
 import { useSync } from "@/components/providers/SyncProvider";
 import { Button } from "@/components/ui/button";
 import type { CheckinFacts } from "@/lib/ai/checkin";
+import type { CoachProfile } from "@/lib/ai/coach";
 import type { DayFact } from "@/lib/ai/daily";
 import { MAX_MESSAGE_CHARS, STARTERS } from "@/lib/ai/coach";
 import { addDaysISO, todayISO } from "@/lib/prep";
 import { messagesKey, useAiMessages, type AiMessage } from "@/lib/queries/ai";
 import { cn } from "@/lib/utils";
+import { useCoachProfile } from "./useCoachProfile";
 import { useDailyFacts } from "./useDailyFacts";
 
-async function ask(message: string, facts: CheckinFacts, days: DayFact[]): Promise<AiMessage[]> {
+type Context = { facts: CheckinFacts; days: DayFact[]; profile: CoachProfile };
+
+async function ask(message: string, context: Context): Promise<AiMessage[]> {
   const res = await fetch("/api/ai/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ message, facts, days }),
+    body: JSON.stringify({ message, ...context }),
   });
   const json = (await res.json().catch(() => null)) as {
     messages?: AiMessage[];
@@ -38,9 +42,12 @@ export function CoachScreen() {
   const messages = useAiMessages();
   const week = useWeekFacts(addDaysISO(todayISO(), -6));
   const daily = useDailyFacts();
-  const ready = week.ready && daily.ready;
-  const facts = week.facts;
-  const days = daily.days;
+  const body = useCoachProfile(week.facts?.weight.avg ?? null);
+  const ready = week.ready && daily.ready && body.ready;
+  const context =
+    week.facts && daily.days && body.profile
+      ? { facts: week.facts, days: daily.days, profile: body.profile }
+      : null;
   const [text, setText] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +60,13 @@ export function CoachScreen() {
 
   async function send(message: string) {
     const m = message.trim();
-    if (!m || !facts || !days || pending) return;
+    if (!m || !context || pending) return;
     if (!navigator.onLine) return setError("相談には通信が必要です");
     setError(null);
     setPending(m);
     setText("");
     try {
-      const added = await ask(m, facts, days);
+      const added = await ask(m, context);
       queryClient.setQueryData<AiMessage[]>(messagesKey, (l = []) => [...l, ...added]);
     } catch (e) {
       setText(m);
@@ -103,6 +110,14 @@ export function CoachScreen() {
         直近 7 日の平均と 14 日分の日ごとの記録を踏まえて答えます。AI
         の回答です。体調や痛みの不安は専門家に相談してください。
       </p>
+      {body.profile && (body.profile.age === null || body.profile.height_cm === null) && (
+        <Link
+          href="/settings"
+          className="text-muted flex min-h-12 items-center text-xs underline underline-offset-4"
+        >
+          設定で身長と生まれ年を入れると、基礎代謝の目安も踏まえて答えます
+        </Link>
+      )}
 
       {messages.isError && <p className="text-warn text-sm">会話を読み込めませんでした</p>}
 

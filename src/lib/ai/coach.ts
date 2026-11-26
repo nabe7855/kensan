@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { ageFrom, bmrMifflin } from "@/lib/energy";
+
 export type ChatRole = "user" | "assistant";
 export type ChatRow = { role: ChatRole; content: string };
 
@@ -34,3 +37,38 @@ export const STARTERS = [
   "トレーニングの量はこのままでいい？",
   "疲れが抜けにくいときはどうする？",
 ];
+
+/**
+ * Who the coach is talking to, with energy figures the app works out so the AI never has to
+ * calculate them (it got BMR wrong when left to do so).
+ */
+export const CoachProfileSchema = z.object({
+  height_cm: z.number().min(100).max(250).nullable(),
+  sex: z.enum(["male", "female", "other"]).nullable(),
+  age: z.number().int().min(10).max(100).nullable(),
+  /** Mifflin-St Jeor from the 7-day average weight. */
+  bmr_kcal: z.number().int().min(500).max(5000).nullable(),
+  /** Maintenance estimated from logged intake and the weight trend of the last 3 weeks. */
+  maintenance_kcal: z.number().int().min(800).max(8000).nullable(),
+});
+export type CoachProfile = z.infer<typeof CoachProfileSchema>;
+
+export function buildCoachProfile(input: {
+  heightCm: number | null;
+  sex: string | null;
+  birthYear: number | null;
+  today: string;
+  weightAvgKg: number | null;
+  maintenanceKcal: number | null;
+}): CoachProfile {
+  const age = ageFrom(input.birthYear, input.today);
+  const sex =
+    input.sex === "male" || input.sex === "female" || input.sex === "other" ? input.sex : null;
+  return {
+    height_cm: input.heightCm,
+    sex,
+    age,
+    bmr_kcal: bmrMifflin({ weightKg: input.weightAvgKg, heightCm: input.heightCm, age, sex }),
+    maintenance_kcal: input.maintenanceKcal,
+  };
+}
