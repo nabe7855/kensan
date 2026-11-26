@@ -271,10 +271,12 @@ export type Database = {
           note: string | null
           pain_areas: string[]
           rhr: number | null
+          salt_level: string | null
           sleep: number | null
           temp_c: number | null
           updated_at: string
           user_id: string
+          weighed_at: string | null
           weight_kg: number | null
         }
         Insert: {
@@ -289,10 +291,12 @@ export type Database = {
           note?: string | null
           pain_areas?: string[]
           rhr?: number | null
+          salt_level?: string | null
           sleep?: number | null
           temp_c?: number | null
           updated_at?: string
           user_id?: string
+          weighed_at?: string | null
           weight_kg?: number | null
         }
         Update: {
@@ -307,10 +311,12 @@ export type Database = {
           note?: string | null
           pain_areas?: string[]
           rhr?: number | null
+          salt_level?: string | null
           sleep?: number | null
           temp_c?: number | null
           updated_at?: string
           user_id?: string
+          weighed_at?: string | null
           weight_kg?: number | null
         }
         Relationships: []
