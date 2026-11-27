@@ -276,7 +276,7 @@ export function useLoggedMeals(from: string, to: string) {
         getSupabase()
           .from("meal_logs")
           .select(
-            "date, eaten_at, meal_log_items(grams, foods(kcal, protein_g, fat_g, carb_g, sodium_mg))",
+            "date, eaten_at, meal_log_items(grams, foods(name, kcal, protein_g, fat_g, carb_g, sodium_mg))",
           )
           .gte("date", from)
           .lte("date", to)

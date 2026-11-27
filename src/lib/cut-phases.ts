@@ -148,6 +148,20 @@ export function estimateMaintenance(
   return round50(avg - slope * KCAL_PER_KG);
 }
 
+/** estimateMaintenance from check-in rows and per-day intake, as the app stores them. */
+export function maintenanceFromLogs(
+  checkins: { date: string; weight_kg: number | null }[],
+  intake: Record<string, number>,
+): number | null {
+  const weights = new Map(
+    checkins.filter((c) => c.weight_kg != null).map((c) => [c.date, c.weight_kg!]),
+  );
+  const dates = [...new Set([...weights.keys(), ...Object.keys(intake)])].sort();
+  return estimateMaintenance(
+    dates.map((d) => ({ date: d, kcal: intake[d] ?? null, weightKg: weights.get(d) ?? null })),
+  );
+}
+
 /** Rough maintenance from body weight alone, for when there is not enough logged data. */
 export const maintenanceFromWeight = (kg: number) => round50(kg * 31);
 

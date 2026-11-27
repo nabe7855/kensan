@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { authErrorMessage, changeEmailSchema, firstIssue } from "@/lib/auth";
 import { bodySchema, nameSchema } from "@/lib/onboarding";
+import { todayISO } from "@/lib/prep";
 import { createClient } from "@/lib/supabase/server";
 
 export type SettingsState = { error?: string; saved?: boolean };
@@ -28,6 +29,14 @@ export async function updateProfile(
   if (!name.success) return { error: "銘は1〜20文字にしてください" };
   const body = bodySchema.safeParse(Object.fromEntries(formData));
   if (!body.success) return { error: "身長・性別・単位を確認してください" };
+  const birthRaw = String(formData.get("birth_year") ?? "").trim();
+  const birthYear = birthRaw === "" ? null : Number(birthRaw);
+  const thisYear = Number(todayISO().slice(0, 4));
+  if (
+    birthYear !== null &&
+    !(Number.isInteger(birthYear) && birthYear >= 1920 && birthYear <= thisYear - 10)
+  )
+    return { error: "生まれ年は西暦 4 桁で入力してください" };
 
   const { supabase, user } = await requireUser();
   const { error } = await supabase
@@ -35,6 +44,7 @@ export async function updateProfile(
     .update({
       ...name.data,
       ...body.data,
+      birth_year: birthYear,
       track_libido: formData.get("track_libido") === "on",
     })
     .eq("user_id", user.id);

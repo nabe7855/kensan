@@ -76,3 +76,12 @@ export function shouldShowWhy(
   const mean = baseline.reduce((s, v) => s + v, 0) / baseline.length;
   return recent.every((s) => s <= mean - margin);
 }
+
+/** Gap from the last weight, as a share of it, past which the entry is double-checked. */
+export const WEIGHT_CHECK_RATIO = 0.03;
+
+/** True when a new weight is far enough from the last one that it may be a typo. */
+export function weightLooksOff(kg: number | null, lastKg: number | null): boolean {
+  if (kg == null || lastKg == null || lastKg <= 0) return false;
+  return Math.abs(kg - lastKg) / lastKg >= WEIGHT_CHECK_RATIO;
+}

@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { buildDailyFacts, DailyFactsSchema, jstTime, saltFromSodium } from "@/lib/ai/daily";
 
-const rice = { kcal: 156, protein_g: 2.5, fat_g: 0.3, carb_g: 37.1, sodium_mg: 1 };
-const soup = { kcal: 40, protein_g: 3, fat_g: 1, carb_g: 4, sodium_mg: 400 };
-const bar = { kcal: 400, protein_g: 30, fat_g: 10, carb_g: 40, sodium_mg: null };
+const rice = { name: "ごはん", kcal: 156, protein_g: 2.5, fat_g: 0.3, carb_g: 37.1, sodium_mg: 1 };
+const soup = { name: "みそ汁", kcal: 40, protein_g: 3, fat_g: 1, carb_g: 4, sodium_mg: 400 };
+const bar = {
+  name: "プロテインバー",
+  kcal: 400,
+  protein_g: 30,
+  fat_g: 10,
+  carb_g: 40,
+  sodium_mg: null,
+};
 
 const checkin = (date: string, extra: Record<string, unknown> = {}) => ({
   date,
@@ -77,5 +84,23 @@ describe("daily facts for the coach", () => {
     expect(d!.weighed_at).toBeNull();
     expect(d!.prev_day_salt_feel).toBeNull();
     expect(d!.bowel).toBeNull();
+  });
+});
+
+describe("daily facts food names", () => {
+  it("lists what was eaten with grams", () => {
+    const [d] = buildDailyFacts({
+      today: "2026-11-26",
+      days: 1,
+      checkins: [],
+      meals: [
+        {
+          date: "2026-11-26",
+          eaten_at: "2026-11-26T03:00:00.000Z",
+          items: [{ grams: 150.4, food: rice }],
+        },
+      ],
+    });
+    expect(d!.meals[0]!.foods).toEqual([{ name: "ごはん", g: 150 }]);
   });
 });

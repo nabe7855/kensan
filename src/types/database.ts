@@ -842,6 +842,7 @@ export type Database = {
       profiles: {
         Row: {
           ai_enabled: boolean
+          birth_year: number | null
           created_at: string
           display_name: string | null
           height_cm: number | null
@@ -859,6 +860,7 @@ export type Database = {
         }
         Insert: {
           ai_enabled?: boolean
+          birth_year?: number | null
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
@@ -876,6 +878,7 @@ export type Database = {
         }
         Update: {
           ai_enabled?: boolean
+          birth_year?: number | null
           created_at?: string
           display_name?: string | null
           height_cm?: number | null
